@@ -1,0 +1,4 @@
+*.Rds
+.Rhistory
+Social Scoreboard output*
+.Rproj.user
