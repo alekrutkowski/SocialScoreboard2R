@@ -359,7 +359,7 @@ SCOREBOARD_SCORES <-
   #         .[, score := score * popweight] %>% 
   #         .[, popweight := NULL]) %>%
   dcast(INDIC_NUM + geo + time + flags_ + high_is_good ~ variable,
-        value.var=c('value','score','t1','t2','t3','t4'),
+        value.var=c('value','score','reference','std','t1','t2','t3','t4'),
         fun.aggregate=identity,
         fill=NA) %>% 
   .[, colour_group :=

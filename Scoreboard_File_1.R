@@ -93,8 +93,8 @@ Reduce(
           setorder(INDIC_NUM) %>% 
           .[,c('INDIC_NUM','type') := NULL] %>% 
           .[,.(name,
-               t1_latest_value,t2_latest_value,t3_latest_value,t4_latest_value,
-               t1_change,t2_change,t3_change,t4_change)] %>% 
+               reference_latest_value,std_latest_value,t1_latest_value,t2_latest_value,t3_latest_value,t4_latest_value,
+               reference_change,std_change,t1_change,t2_change,t3_change,t4_change)] %>% 
           .[!duplicated(.)] # percentiles/cuttofs are repeated across country
         wb_add_data(., x=dta, start_col=1, start_row=1) %>%
           wb_freeze_pane(first_active_row=2,
