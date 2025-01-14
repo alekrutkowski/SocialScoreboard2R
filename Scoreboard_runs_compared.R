@@ -3,7 +3,10 @@ library(magrittr)
 library(openxlsx2)
 
 TimeStamp <-
-  OUTPUT_FOLDER %>% 
+  # Sys.time() %>% 
+  # format("%Y-%m-%d %H:%M:%S") %>% 
+  # gsub(':','.',.,fixed=TRUE)
+  OUTPUT_FOLDER %>%
   sub('Social Scoreboard output ',"",.,fixed=TRUE)
 
 PastRuns <-
@@ -12,14 +15,17 @@ PastRuns <-
        sort(.) %>% rev %>% 
          lapply(readRDS) %>% 
          Reduce(x=.,
-                f=\(dt1,dt2) merge(dt1,dt2, all=TRUE,
-                                   by=c('INDIC_NUM','time','geo'))),
+                f=\(dt1,dt2) 
+                merge(dt1,dt2, all=TRUE,
+                      by=c('INDIC_NUM','name','time','geo'))),
        .)
 
 CurrentRun <-
   SCOREBOARD_GRAND_TABLE %>% 
   copy %>% 
   .[, high_is_good := NULL] %>% 
+  .[, time := as.integer(time)] %>% 
+  .[time > 2000] %>% 
   merge(SCOREBOARD_NAMES_DESCRIPTIONS[,.(INDIC_NUM,name)],
         by='INDIC_NUM') %>% 
   setcolorder(c('INDIC_NUM','name','time','geo','value_','flags_')) %>% 
@@ -31,10 +37,10 @@ CurrentRun <-
 if (is.data.table(PastRuns))
   CurrentRun %>% 
   merge(PastRuns, all=TRUE,
-        by=c('INDIC_NUM','time','geo')) %>% 
+        by=c('INDIC_NUM','name','time','geo')) %>% 
   setcolorder(c('INDIC_NUM','name','time','geo')) %>% 
   setorder(INDIC_NUM,name,time,geo) %>% 
   write_xlsx(paste0(OUTPUT_FOLDER,'/Social Scoreboard runs compared.xlsx'),
-             zoom=85, sheet=TimeStamp, widths='auto',
-             first_active_row=1, first_active_col=5,
-             with_filter = rep.int(TRUE,4))
+             zoom=85, sheet=TimeStamp, col_widths=23,
+             first_active_row=2, first_active_col=5,
+             with_filter = TRUE) # c(rep.int(TRUE,4),rep.int(FALSE,ncol(.)-4)))
