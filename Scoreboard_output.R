@@ -318,6 +318,7 @@ message('Calculating scores...')
 SCOREBOARD_SCORES <-
   SCOREBOARD_LAGS_DIFFS %>%
   .[time==latest_year_individual] %>% 
+  .[, .SD[!(time < round(mean(time))-1)], by=INDIC_NUM] %>% # drop too old years for some countries
   melt(id.vars=c('INDIC_NUM','geo','time','high_is_good','flags_'),
        measure.vars=c('latest_value','change'),
        variable.name="variable", value.name="value",
