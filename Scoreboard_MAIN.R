@@ -3,6 +3,7 @@
 runScript <- function(file_name) {
   message('\n\n====== Starting ',file_name,' ======\n')
   source(file_name)
+  message('\n\U2705 Finished ',file_name,'\n')
 }
 
 init <- function() {
@@ -28,4 +29,4 @@ runScript('Scoreboard_File_3.R')
 runScript('Scoreboard_File_4.R')
 # runScript('Scoreboard_File_5.R')
 
-message('\n\nAll Scoreboard scripts finished.')
+message('\n\n\U2705 All Scoreboard scripts finished.')

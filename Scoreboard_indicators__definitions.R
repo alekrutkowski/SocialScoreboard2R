@@ -807,7 +807,7 @@ name = "At risk of poverty or social exclusion (AROPE) rate (% of total populati
 chapter = "Living conditions and poverty",
 group = "Equal opportunities",
 type = "H",
-url = "https://ec.europa.eu/eurostat/databrowser/view/ilc_pecs01/default/table?lang=en",
+url = "https://ec.europa.eu/eurostat/databrowser/view/ilc_peps01n/default/table?lang=en",
 high_is_good = FALSE,
 value = fromEurostatDataset("ilc_peps01n", 
     with_filters(unit="PC", age="TOTAL", sex="T"))
@@ -995,7 +995,7 @@ name = "At risk of poverty or social exclusion (AROPE) rate for children (% of p
 chapter = "Living conditions and poverty",
 group = "Social protection and inclusion",
 type = "H",
-url = "https://ec.europa.eu/eurostat/databrowser/view/ilc_pecs01/default/table?lang=en",
+url = "https://ec.europa.eu/eurostat/databrowser/view/ilc_peps01n/default/table?lang=en",
 high_is_good = FALSE,
 value = fromEurostatDataset("ilc_peps01n", 
     with_filters(unit="PC", age="Y_LT18", sex="T"))
