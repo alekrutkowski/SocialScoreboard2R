@@ -174,13 +174,13 @@ qualityChecksTable <- function(SCOREBOARD_GRAND_TABLE)
 # Actions -----------------------------------------------------------------
 
 if (exists('DEVMODE') && DEVMODE) { # development mode -- restoring pre-calculated SCOREBOARD_INDICATORS from disk
-  message('\nDEVMODE=TRUE -- restoring SCOREBOARD_INDICATORS from SCOREBOARD_INDICATORS.Rds')
+  message('\n\U1F537 DEVMODE=TRUE -- restoring SCOREBOARD_INDICATORS from SCOREBOARD_INDICATORS.Rds')
   SCOREBOARD_INDICATORS <-
     readRDS('SCOREBOARD_INDICATORS.Rds')
 } else {
   if (file.exists('SCOREBOARD_INDICATORS.Rds')) {
     if (!exists('SCOREBOARD_INDICATORS'))
-      stop('\nObject `SCOREBOARD_INDICATORS` not found!\n',
+      stop('\n\U274C Object `SCOREBOARD_INDICATORS` not found!\n',
            'Maybe you forgot to set DEVMODE=TRUE ?')
     message('\nRenaming/archiving the exisitng/old\nSCOREBOARD_INDICATORS.Rds -> ',
             appendLF=FALSE)

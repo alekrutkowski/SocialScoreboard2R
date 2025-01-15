@@ -28,6 +28,7 @@ worksheets_dt_list <- '
 | Supplementary breakdowns_flags  | SB      |
 | Comparison                      | H       |
 | Cut_offs                        | H       |
+| Cut_offs II                     | H       |
 ' %>% 
   readMarkDownTable() %>% 
   # Differences -- Change	Diff_EU	Diff_MSEU, all in the latest year
@@ -40,18 +41,18 @@ nonweightedAverages <- function(dt)
   dt %>% 
   rowbind(.[, .(geo='EUnw',
                 value_=mean(value_[geo %in% EU_Members_geo_codes],
-                            na.rm=TRUE) %>% round(1))
+                            na.rm=TRUE) %>% round(2))
             , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
           , fill=TRUE) %>%
   rowbind(.[, .(geo='EAnw',
                 value_=mean(value_[geo %in% EA_Members_geo_codes],
-                            na.rm=TRUE) %>% round(1))
+                            na.rm=TRUE) %>% round(2))
             , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
           , fill=TRUE)
 
 reshapeAndSort <- function(dt)
   dt %>% 
-  .[,value_ := if (is.numeric(value_)) round(value_,1) else value_] %>% 
+  .[,value_ := if (is.numeric(value_)) round(value_,2) else value_] %>% 
   dcast(paste('geo ~',
               ifelse('time' %in% colnames(.),'time','variable')) %>% 
           as.formula(), 
@@ -82,7 +83,7 @@ Reduce(
       )
     wb %>% 
       wb_add_worksheet(ws_name, zoom=80) %>% 
-      {`if`(ws_name=='Cut_offs', {
+      {`if`(ws_name %in% c('Cut_offs','Cut_offs II') {
         dta <-
           SCOREBOARD_SCORES %>% 
           merge(SCOREBOARD_NAMES_DESCRIPTIONS[,.(INDIC_NUM,type,name)],
@@ -95,8 +96,21 @@ Reduce(
           .[,.(name,
                reference_latest_value,std_latest_value,t1_latest_value,t2_latest_value,t3_latest_value,t4_latest_value,
                reference_change,std_change,t1_change,t2_change,t3_change,t4_change)] %>% 
-          .[!duplicated(.)] # percentiles/cuttofs are repeated across country
-        wb_add_data(., x=dta, start_col=1, start_row=1) %>%
+          .[!duplicated(.)] %>% # percentiles/cuttofs are repeated across country
+          `if`(ws_name=='Cut_offs II',
+               setnames(.,\(x) x %>% 
+                          sub('_latest_value',' Levels',.,fixed=TRUE) %>% 
+                          sub('_change',' Changes',.,fixed=TRUE)) %>% 
+                 .[, id := .I] %>% 
+                 melt(id.vars=c('id','name')) %>% 
+                 .[, c('var.','level or change') := tstrsplit(variable,split=' ')] %>% 
+                 dcast(id + name + `level or change` ~ var., value.var='value',
+                       fun.aggregate=identity) %>% 
+                 setorder(id) %>% 
+                 .[,.(name, `level or change`,
+                      reference, std, t1, t2, t3, t4)],
+               .)
+        wb_add_data(., x=dta, start_col=1, start_row=1, na.strings="") %>%
           wb_freeze_pane(first_active_row=2,
                          first_active_col=2) %>% 
           wb_set_col_widths(cols=1,
@@ -113,7 +127,7 @@ Reduce(
                 wb <-
                   .list$wb
                 dta <-
-                  if (ws_name %not in% c('Differences','Scores','Comparison','Cut_offs'))
+                  if (ws_name %not in% c('Differences','Scores','Comparison','Cut_offs','Cut_offs II'))
                     SCOREBOARD_LAGS_DIFFS %>% 
                   .[INDIC_NUM==indic_num & 
                       (time==latest_year_individual | time==previous_year | time==previous_year_2)] %>%
@@ -154,8 +168,9 @@ Reduce(
                   `if`(length(.)==0,which(rows=='score_type'),.) %>% 
                   `if`(length(.)==0,1,.) 
                 wb %>% 
-                  wb_add_data(x=rows, start_col=1, start_row=1) %>% 
+                  wb_add_data(x=rows, start_col=1, start_row=1, na.strings="") %>% 
                   wb_add_data(x=SCOREBOARD_NAMES_DESCRIPTIONS[INDIC_NUM==indic_num, name],
+                              na.strings="",
                               dims=paste0(int2col(.list$col_num),'1:')) %>% 
                   wb_merge_cells(dims=paste0(int2col(.list$col_num),'1:',
                                              int2col(.list$col_num + num_of_cols - 1),'1')) %>% 
@@ -164,14 +179,16 @@ Reduce(
                   wb_set_row_heights(rows=1, heights=75) %>% 
                   wb_add_data(x=dta,
                               start_row=dta_start_row, 
-                              start_col=.list$col_num) %>%
+                              start_col=.list$col_num,
+                              na.strings="") %>%
                   wb_freeze_pane(first_active_row=dta_start_row+1,
                                  first_active_col=2) %>% 
                   wb_set_col_widths(cols=.list$col_num:(.list$col_num + num_of_cols),
                                     widths=30/num_of_cols) %>% 
                   `if`(ws_name=='Headline',
                        wb_add_data(., x=SCOREBOARD_NAMES_DESCRIPTIONS[INDIC_NUM==indic_num, url],
-                                   dims=paste0(int2col(.list$col_num),'2:')) %>% 
+                                   dims=paste0(int2col(.list$col_num),'2:'),
+                                   na.strings="") %>% 
                          wb_merge_cells(dims=paste0(int2col(.list$col_num),'2:',
                                                     int2col(.list$col_num + num_of_cols - 1),'2')),
                        .) %>% 

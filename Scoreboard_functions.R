@@ -497,7 +497,7 @@ OECD_Pisa2 <- function(with_filters)
 getParticipation_in_education_and_training <- memoise(function() {
   ### Translated from Python ###
   # Define the file path
-  file_path <- "Participation in education and training (excluding guided on the job training).xlsx"
+  file_path <- "Participation in education and training (excluding guided on the job training) 2016-2022.xlsx"
   # Check if the file exists
   if (!file.exists(file_path)) {
     stop(paste0(
@@ -507,9 +507,20 @@ getParticipation_in_education_and_training <- memoise(function() {
       "\nor get from Elodie CAYOTTE (ESTAT) <Elodie.CAYOTTE@ec.europa.eu> or Sabine GAGEL (ESTAT) <Sabine.GAGEL@ec.europa.eu>"
     ))
   }
+  years <-
+    file_path %>% 
+    wb_load() %>% 
+    wb_get_sheet_names() %>% 
+    gsub("[^0-9]","",.) %>% 
+    unique %>% 
+    .[.!=""] %>% 
+    sort
   # List of tuples with (sheet_name_prefix, usecols, new_column_names)
   sheets_and_columns <- list(
-    list("SEX", c(1, 5, 6, 7), c("Country", "TOTAL", "MEN", "WOMEN")),
+    list('TIME', c(1,12:15), years %>% 
+           expand.grid(c('value_ ','flags_ '),.) %>% do.call(paste0,.) %>% 
+           c('Country',.)),
+    list("SEX", c(1, 6, 7), c("Country", "MEN", "WOMEN")),
     list("AGE", c(1, 8, 9, 10, 11), c("Country", "Y25-34", "Y35-44", "Y45-54", "Y55-64")),
     list("ISCED", c(1, 7, 8, 9), c("Country", "ISCED_0-2", "ISCED_3-4", "ISCED_5-8"))
   )
@@ -520,21 +531,35 @@ getParticipation_in_education_and_training <- memoise(function() {
     sheet_name_prefix <- sheet_info[[1]]
     usecols <- sheet_info[[2]]
     colnames <- sheet_info[[3]]
-    for (year in c(2016, 2022)) {
+    for (year in years) {
       # Read the relevant rows and columns from the Excel file
-      dt <- read_xlsx(file_path, sheet = paste0(sheet_name_prefix, " - ", year)) %>% 
+      dt <- read_xlsx(file_path, 
+                      sheet = sheet_name_prefix %>% 
+                        `if`(.=='TIME',.,paste0(.," - ",year)),
+                      rows=6:33, cols=usecols, col_names=FALSE) %>% 
         setDT() %>% 
-        .[6:33, ..usecols] %>% 
+        # .[6:33, ..usecols] %>% 
         setnames(colnames) %>% 
-        .[, time := as.integer(year)] %>% 
-        melt(id.vars = c("Country", "time"), 
-             variable.name = "group", 
-             value.name = "value_")
+        `if`(sheet_name_prefix!='TIME',
+             .[, time := as.integer(year)] %>% 
+               .[, Country := Country %>% 
+                   gsub('(¹)',"",.,fixed=TRUE) %>% 
+                   gsub('(²)',"",.,fixed=TRUE) %>% 
+                   gsub(' ',"",.,fixed=TRUE)] %>% 
+               melt(id.vars = c("Country", "time"), 
+                    variable.name = "group", 
+                    value.name = "value_"),
+             melt(., id.vars='Country') %>% 
+               .[, c('var.','time') := tstrsplit(variable,split=' ')] %>% 
+               dcast(Country + time ~ var., value.var='value',
+                     fun.aggregate=identity) %>% 
+               .[, time := as.integer(time)] %>% 
+               .[, group := 'TOTAL'])
       # Append the data.table to the list
       datatables <- append(datatables, list(dt))
     }
   }
-  dts <- rbindlist(datatables)
+  dts <- rbindlist(datatables, fill=TRUE)
   # Define the Eurostat country codes
   Eurostat_country_codes <- c(
     "EU-27" = "EU27_2020",
