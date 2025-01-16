@@ -9,6 +9,7 @@ library(countrycode)
 library(rvest)
 library(kit)
 library(xml2)
+library(openxlsx2)
 
 
 # Constants and aliases ---------------------------------------------------
@@ -540,26 +541,29 @@ getParticipation_in_education_and_training <- memoise(function() {
         setDT() %>% 
         # .[6:33, ..usecols] %>% 
         setnames(colnames) %>% 
-        `if`(sheet_name_prefix!='TIME',
-             .[, time := as.integer(year)] %>% 
-               .[, Country := Country %>% 
-                   gsub('(¹)',"",.,fixed=TRUE) %>% 
-                   gsub('(²)',"",.,fixed=TRUE) %>% 
-                   gsub(' ',"",.,fixed=TRUE)] %>% 
-               melt(id.vars = c("Country", "time"), 
-                    variable.name = "group", 
-                    value.name = "value_"),
-             melt(., id.vars='Country') %>% 
-               .[, c('var.','time') := tstrsplit(variable,split=' ')] %>% 
-               dcast(Country + time ~ var., value.var='value',
-                     fun.aggregate=identity) %>% 
-               .[, time := as.integer(time)] %>% 
-               .[, group := 'TOTAL'])
+        {`if`(sheet_name_prefix!='TIME',
+              .[, time := as.integer(year)] %>% 
+                .[, Country := Country %>% 
+                    gsub('(¹)',"",.,fixed=TRUE) %>% 
+                    gsub('(²)',"",.,fixed=TRUE) %>% 
+                    gsub(' ',"",.,fixed=TRUE)] %>% 
+                melt(id.vars = c("Country", "time"), 
+                     variable.name = "group", 
+                     value.name = "value_") %>% 
+                .[, flags_ := ""],
+              if (year==min(years)) # to avoid multiple imports
+                melt(., id.vars='Country') %>% 
+                .[, c('var.','time') := tstrsplit(variable,split=' ')] %>% 
+                .[, variable := NULL] %>% 
+                dcast(Country + time ~ var., value.var='value',
+                      fun.aggregate=identity) %>% 
+                .[, time := as.integer(time)] %>% 
+                .[, group := 'TOTAL'])}
       # Append the data.table to the list
       datatables <- append(datatables, list(dt))
     }
   }
-  dts <- rbindlist(datatables, fill=TRUE)
+  dts <- rbindlist(datatables, use.names=TRUE)
   # Define the Eurostat country codes
   Eurostat_country_codes <- c(
     "EU-27" = "EU27_2020",
@@ -597,7 +601,7 @@ getParticipation_in_education_and_training <- memoise(function() {
     merge(Eurostat_country_codes, by='Country') %>% 
     .[, Country := NULL] %>% 
     .[, value_ := as.numeric(value_)] %>% 
-    .[, .(time, geo, group, value_)]
+    .[, .(time, geo, group, value_, flags_)]
 })
 
 Participation_in_education_and_training <- function(with_filters) {

@@ -281,22 +281,38 @@ SCOREBOARD_LAGS_DIFFS <-
   #     suppressWarnings(max(time[sufficiently_many_countries])) %>% # suppressed warning if time[sufficiently_many_countries] is empty i.e. -> max = -Inf
   #     ifelse(is.infinite(.), NA_integer_, .)
   #   , by=INDIC_NUM] %>% 
+  merge( # needed for correct shifts
+    expand.grid(INDIC_NUM=unique(.$INDIC_NUM)
+                  %without% ### EXCEPTIONS to the normal 1-year difference !!!
+                  c("09500_ex-50",
+                    "09510_ex-49",
+                    "09520_ex-48",
+                    "09530_ex-47",
+                    "09540_ex-46",
+                    "09550_ex-45",
+                    "09560_ex-44",
+                    "09570_ex-43",
+                    "09580_ex-42",
+                    "10000_ex0",
+                    "10040_ex4"),
+                geo=unique(.$geo),
+                time=min(.$time,na.rm=TRUE):max(.$time,na.rm=TRUE)),
+    by=c('INDIC_NUM','geo','time'),
+    all=TRUE) %>% 
   .[, latest_year_individual :=
       time %>% 
       .[isNotNA(.)] %>% 
       max()
     , by=.(INDIC_NUM,geo)] %>% 
-  .[, previous_year :=
-      time %>% 
-      .[isNotNA(.) & .<latest_year_individual] %>% 
-      max()
+  .[, prevailing_latest_year := 
+      round(mean(time[time==latest_year_individual]))
+    , by=INDIC_NUM] %>% 
+  setorder(INDIC_NUM,geo,time) %>% 
+  .[, previous_year := shift(time) %>% max(na.rm=TRUE)
     , by=.(INDIC_NUM,geo)] %>% 
-  .[, previous_year_2 :=
-      time %>% 
-      .[isNotNA(.) & .<previous_year] %>% 
-      max()
+  .[, previous_year_2 := shift(time,2) %>% max(na.rm=TRUE)
     , by=.(INDIC_NUM,geo)] %>% 
-  .[, latest_value := value_[time==latest_year_individual]
+  .[, latest_value := value_[time==prevailing_latest_year]
     , by=.(INDIC_NUM,geo)] %>% 
   .[, previous_value := value_[time==previous_year]
     , by=.(INDIC_NUM,geo)] %>%
@@ -316,13 +332,13 @@ SCOREBOARD_LAGS_DIFFS <-
 
 message('Calculating scores...')
 SCOREBOARD_SCORES <-
-  SCOREBOARD_LAGS_DIFFS %>%
-  .[time==latest_year_individual] %>% 
-  .[, .SD[!(time < round(mean(time))-1)], by=INDIC_NUM] %>% # drop too old years for some countries
+  SCOREBOARD_LAGS_DIFFS %>% 
+  .[time==prevailing_latest_year] %>% 
+  # .[, .SD[!(time < round(mean(time))-1)], by=INDIC_NUM] %>% # drop too old years for some countries
   melt(id.vars=c('INDIC_NUM','geo','time','high_is_good','flags_'),
        measure.vars=c('latest_value','change'),
        variable.name="variable", value.name="value",
-       na.rm=TRUE) %>%
+       na.rm=TRUE) %>% 
   # .[!(INDIC_NUM %in% SCOREBOARD_NAMES_DESCRIPTIONS[!(calculate_score_change), INDIC_NUM] & 
   #       variable=='change')] %>%
   # .[!(INDIC_NUM %in% SCOREBOARD_NAMES_DESCRIPTIONS[!(calculate_score_change_with_break_in_series), INDIC_NUM] & 
@@ -342,9 +358,9 @@ SCOREBOARD_SCORES <-
   #     LIST_OF_REFERENCE_POINT_FUNCTIONS[[unique(reference_name)]](time, geo, is_time=TRUE) %>% 
   #     as.character()
   #   , by=.(INDIC_NUM, variable)] %>% 
-  .[, reference := mean(value[geo %in% EU_Members_geo_codes]),
+  .[, reference := mean(value[geo %in% EU_Members_geo_codes], na.rm=TRUE),
     , by=.(INDIC_NUM, variable)] %>% 
-  .[, std := sd(value[geo %in% EU_Members_geo_codes]),
+  .[, std := sd(value[geo %in% EU_Members_geo_codes], na.rm=TRUE),
     , by=.(INDIC_NUM, variable)] %>% 
   .[, score := -1.019049* # rescaling to make it compatible with the Python results
       ifelse(high_is_good,1,-1)*

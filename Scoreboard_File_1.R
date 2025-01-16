@@ -62,7 +62,9 @@ reshapeAndSort <- function(dt)
   .[,c('.order','geo') := NULL] %>% 
   `if`(ncol(.)>3,
        .[, (ncol(.)-2):ncol(.), with=FALSE],
-       .)
+       .) %>% 
+  .[, lapply(.SD, \(x) if (is.character(x))
+    gsub(' NA',"",x,fixed=TRUE) else x)]
 
 
 Reduce(
@@ -83,7 +85,7 @@ Reduce(
       )
     wb %>% 
       wb_add_worksheet(ws_name, zoom=80) %>% 
-      {`if`(ws_name %in% c('Cut_offs','Cut_offs II') {
+      {`if`(ws_name %in% c('Cut_offs','Cut_offs II'), {
         dta <-
           SCOREBOARD_SCORES %>% 
           merge(SCOREBOARD_NAMES_DESCRIPTIONS[,.(INDIC_NUM,type,name)],
@@ -96,13 +98,14 @@ Reduce(
           .[,.(name,
                reference_latest_value,std_latest_value,t1_latest_value,t2_latest_value,t3_latest_value,t4_latest_value,
                reference_change,std_change,t1_change,t2_change,t3_change,t4_change)] %>% 
+          na.omit() %>%
           .[!duplicated(.)] %>% # percentiles/cuttofs are repeated across country
           `if`(ws_name=='Cut_offs II',
                setnames(.,\(x) x %>% 
-                          sub('_latest_value',' Levels',.,fixed=TRUE) %>% 
-                          sub('_change',' Changes',.,fixed=TRUE)) %>% 
+                          sub('_latest_value',' 1_levels',.,fixed=TRUE) %>% 
+                          sub('_change',' 2_changes',.,fixed=TRUE)) %>% 
                  .[, id := .I] %>% 
-                 melt(id.vars=c('id','name')) %>% 
+                 melt(id.vars=c('id','name')) %>%  
                  .[, c('var.','level or change') := tstrsplit(variable,split=' ')] %>% 
                  dcast(id + name + `level or change` ~ var., value.var='value',
                        fun.aggregate=identity) %>% 
@@ -130,15 +133,15 @@ Reduce(
                   if (ws_name %not in% c('Differences','Scores','Comparison','Cut_offs','Cut_offs II'))
                     SCOREBOARD_LAGS_DIFFS %>% 
                   .[INDIC_NUM==indic_num & 
-                      (time==latest_year_individual | time==previous_year | time==previous_year_2)] %>%
+                      (time==prevailing_latest_year | time==previous_year | time==previous_year_2)] %>%
                   nonweightedAverages() %>%
                   `if`(ws_name=='Flags', .[, value_ := flags_], .) %>% 
-                  `if`(grepl('_flags',ws_name), .[, value_ := paste(value_,flags_)], .) %>% 
+                  `if`(grepl('_flags',ws_name), .[, value_ := paste(round(value_,2),flags_)], .) %>%  
                   reshapeAndSort() else
                     # Differences
                     if (ws_name=='Differences')
                       SCOREBOARD_LAGS_DIFFS %>%
-                  .[INDIC_NUM==indic_num & time==latest_year_individual] %>%
+                  .[INDIC_NUM==indic_num & time==prevailing_latest_year] %>%
                   melt(id.vars='geo', measure.vars=c("change","Diff_EU","Diff_MSEU"),
                        value.name='value_') %>% 
                   nonweightedAverages() %>%
@@ -155,7 +158,7 @@ Reduce(
                     if (ws_name=='Comparison')
                       SCOREBOARD_LAGS_DIFFS %>%
                   .[INDIC_NUM==indic_num &
-                      (time==latest_year_individual | time==latest_year_individual-10 | time==latest_year_individual-15)] %>%
+                      (time==prevailing_latest_year | time==prevailing_latest_year-10 | time==prevailing_latest_year-15)] %>%
                   .[, num_of_geos := length(geo), by=.(INDIC_NUM,time)] %>% 
                   .[!num_of_geos<10] %>% 
                   nonweightedAverages() %>% 
