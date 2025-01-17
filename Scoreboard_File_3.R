@@ -91,7 +91,7 @@ template_worksheet_names <-
 
 if (length(template_worksheet_names)<length(dta_list %>% names))
   stop('Too few worksheets in "Social Scoreboard file3 TEMPLATE.xlsx":\n',
-       'There are ',length(template_worksheet_names),
+       'there are ',length(template_worksheet_names),
        ', there should be ',length(dta_list %>% names),'.\n',
        'Add ',length(dta_list %>% names)-length(template_worksheet_names),' worksheets (with any names).')
 
@@ -147,6 +147,106 @@ Reduce(init=source_excel_template,
                wb_add_data__in_multiple_locations(sheet=x, max_change, c('L44','L52')) %>% 
                wb_add_data__in_multiple_locations(sheet=x, avg_change, c('L45','L48','L49'))
            }
+       }
+) %>% 
+  wb_save(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx'))
+
+
+
+# Significances -----------------------------------------------------------
+
+message('\nAdding significance info.')
+
+SPPM_file <-
+  paste0("//net1.cec.eu.int/EMPL/F/F4/04 Data and tools/Reports/SPPM Dashboard/config",
+         "/SPPM Dashboard/Variance_significativity_2008_2019_2022_2023_SPPM.xlsx")
+EPM_file <-
+  paste0("//net1.cec.eu.int/EMPL/F/F4/04 Data and tools/Reports/EPM Dashboard/config",
+         "/EPM_significances2023.csv")
+# SPPM = Excel worksheet name in `SPPM_file`
+# EPM = Excel file "IndicatorID" column code in `EPM_file`
+SignificanceDataLocations <- "
+| INDIC_NUM    | SPPM            | EPM   |
+|--------------|-----------------|-------|
+| 10000_ex0    |                 |       |
+| 10010_ex1    |                 | ID17  |
+| 10040_ex4    |                 |       |
+| 10070_ex7    |                 |       |
+| 10170_ex17   |                 | ID13  |
+| 10200_ex20   | S20S80          |       |
+| 10220_ex22   |                 | ID1   |
+| 10310_ex31   |                 |       |
+| 10500_ex50   |                 | ID7   |
+| 10610_ex61   |                 |       |
+| 10660_ex66   | AROPE_NEW       |       |
+| 10830_ex83   | AROPE_NEW_0_17  |       |
+| 10990_ex99   |                 |       |
+| 11060_ex106  |                 |       |
+| 11090_ex109  | Housing_cost    |       |
+| 11130_ex113  |                 |       |
+| 11140_ex114  |                 |       |
+" %>% readMarkDownTable %>%
+  # .[SPPM!="" | EPM!=""] %>% 
+  melt(id.vars='INDIC_NUM',
+       variable.name="source_file", value.name="sheet_or_IndicatorID",
+       variable.factor=FALSE) %>% 
+  .[sheet_or_IndicatorID!=""] %>% 
+  split(by='INDIC_NUM')
+
+importFromSPPM <- function(sheet)
+  read_xlsx(SPPM_file, sheet, start_row=4, cols=c(1,7),
+            col_names=FALSE) %>% 
+  as.data.table %>% 
+  setnames(c('geo','significant')) %>% 
+  .[, significant := significant=='Y'] %>% 
+  .[geo %in% EU_Members_geo_codes]
+
+importFromEPM <- function(IndicatorID.)
+  fread(EPM_file, header=TRUE) %>% 
+  .[IndicatorID==IndicatorID.] %>% 
+  .[, significant := short_boolean=='Yes'] %>% 
+  .[,.(geo,significant)] %>% 
+  .[geo %in% EU_Members_geo_codes]
+
+Significances <-
+  SignificanceDataLocations %>% 
+  lapply(\(x) switch(x$source_file, EPM=importFromEPM, SPPM=importFromSPPM,
+                     stop('Unknown data significance source file.')) %>% 
+           {.(x$sheet_or_IndicatorID)})
+
+File3 <-
+  paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx') %>% 
+  wb_load()
+
+INDIC_NUM_codes <-
+  names(dta_list)
+
+Reduce(init=File3,
+       x=seq_along(dta_list),
+       f=function(wb,sheet_num) {
+         geos <-
+           wb_to_df(wb, sheet=sheet_num, cols=14,
+                    rows=14:(14+length(EU_Members_geo_codes)-1),
+                    col_names=FALSE) %>% 
+           as.data.table() %>% 
+           setnames(new='geo') %>% 
+           .[, geo_order := .I]
+         INDIC_NUM <-
+           names(dta_list)[sheet_num] %T>% cat(" ")
+         if (INDIC_NUM %in% names(Significances))
+           Significances %>% 
+           .[[INDIC_NUM]] %>% 
+           merge(geos, all.y=TRUE, by='geo') %>% 
+           .[, geo := geo %>%
+               ifelse(significant,paste0(.,'*'),.)] %>% 
+           setorder(geo_order) %>% 
+           .[,.(geo)] %>% 
+           wb_add_data(wb, sheet_num, x=.,
+                       start_row=14, start_col=14,
+                       col_names=FALSE) else {
+                         cat('<-skipped'," "); wb
+                       }
+         
        }
 ) %>% 
   wb_save(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx'))

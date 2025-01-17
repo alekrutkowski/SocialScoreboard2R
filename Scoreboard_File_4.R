@@ -73,7 +73,8 @@ Reduce(init=source_excel_template,
                                old_string='DD MMMMM YYYY',
                                new_string=format(Sys.Date(),"%d %B %Y")) %>% 
            wb_add_data(sheet=x, x=dta_list[[x]]$value_latest_value,
-                       start_row=2, start_col=9) %>%
+                       start_row=2, start_col=9,
+                       na.strings="") %>%
            wb_add_data(sheet=x, start_col=11, start_row=2,
                        x=rep.int("",nrow(template_indic_nums))) %>% 
            Reduce(init=.,

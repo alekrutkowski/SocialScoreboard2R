@@ -63,8 +63,12 @@ reshapeAndSort <- function(dt)
   `if`(ncol(.)>3,
        .[, (ncol(.)-2):ncol(.), with=FALSE],
        .) %>% 
-  .[, lapply(.SD, \(x) if (is.character(x))
-    gsub(' NA',"",x,fixed=TRUE) else x)]
+  Filter(\(x) !all(is.na(x)),.) %>% 
+  .[, lapply(.SD, \(x)
+             `if`(is.character(x),
+                  ifelse(is.na(x),"",
+                         gsub(' NA',"",x,fixed=TRUE)),
+                  x))]
 
 
 Reduce(
@@ -136,7 +140,9 @@ Reduce(
                       (time==prevailing_latest_year | time==previous_year | time==previous_year_2)] %>%
                   nonweightedAverages() %>%
                   `if`(ws_name=='Flags', .[, value_ := flags_], .) %>% 
-                  `if`(grepl('_flags',ws_name), .[, value_ := paste(round(value_,2),flags_)], .) %>%  
+                  `if`(grepl('_flags',ws_name), .[, value_ := 
+                                                    paste(round(value_,2) %>% ifelse(is.na(.),"",.),
+                                                          flags_)], .) %>%  
                   reshapeAndSort() else
                     # Differences
                     if (ws_name=='Differences')
@@ -159,7 +165,7 @@ Reduce(
                       SCOREBOARD_LAGS_DIFFS %>%
                   .[INDIC_NUM==indic_num &
                       (time==prevailing_latest_year | time==prevailing_latest_year-10 | time==prevailing_latest_year-15)] %>%
-                  .[, num_of_geos := length(geo), by=.(INDIC_NUM,time)] %>% 
+                  .[, num_of_geos := length(geo[isNotNA(value_)]), by=.(INDIC_NUM,time)] %>% 
                   .[!num_of_geos<10] %>% 
                   nonweightedAverages() %>% 
                   reshapeAndSort()

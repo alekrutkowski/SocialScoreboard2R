@@ -294,19 +294,23 @@ SCOREBOARD_LAGS_DIFFS <-
                     "09570_ex-43",
                     "09580_ex-42",
                     "10000_ex0",
-                    "10040_ex4"),
+                    "10040_ex4",
+                    "10050_ex5",
+                    "10060_ex6" ),
                 geo=unique(.$geo),
                 time=min(.$time,na.rm=TRUE):max(.$time,na.rm=TRUE)),
     by=c('INDIC_NUM','geo','time'),
     all=TRUE) %>% 
   .[, latest_year_individual :=
       time %>% 
-      .[isNotNA(.)] %>% 
+      .[isNotNA(.) & isNotNA(value_)] %>% 
       max()
     , by=.(INDIC_NUM,geo)] %>% 
+  .[time <= latest_year_individual] %>% 
   .[, prevailing_latest_year := 
-      round(mean(time[time==latest_year_individual]))
+      round(mean(latest_year_individual))
     , by=INDIC_NUM] %>% 
+  .[time <= prevailing_latest_year] %>% 
   setorder(INDIC_NUM,geo,time) %>% 
   .[, previous_year := shift(time) %>% max(na.rm=TRUE)
     , by=.(INDIC_NUM,geo)] %>% 
