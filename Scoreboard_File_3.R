@@ -214,7 +214,7 @@ Significances <-
   SignificanceDataLocations %>% 
   lapply(\(x) switch(x$source_file, EPM=importFromEPM, SPPM=importFromSPPM,
                      stop('Unknown data significance source file.')) %>% 
-           {.(x$sheet_or_IndicatorID)})
+           {.(x$worksheet)})
 
 File3 <-
   paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx') %>% 
@@ -234,7 +234,7 @@ Reduce(init=File3,
            setnames(new='geo') %>% 
            .[, geo_order := .I]
          INDIC_NUM <-
-           names(dta_list)[sheet_num] %T>% cat(" ")
+           names(dta_list)[sheet_num] %T>% cat("")
          if (INDIC_NUM %in% names(Significances))
            Significances %>% 
            .[[INDIC_NUM]] %>% 
@@ -246,9 +246,9 @@ Reduce(init=File3,
            wb_add_data(wb, sheet_num, x=.,
                        start_row=14, start_col=14,
                        col_names=FALSE) else {
-                         cat('<-skipped'," "); wb
+                         cat('<-skipped',"  "); wb
                        }
          
        }
 ) %>% 
-  wb_save(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx'))
+  wb_save(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3 with signif. stars.xlsx'))

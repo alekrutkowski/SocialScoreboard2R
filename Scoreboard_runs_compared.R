@@ -9,16 +9,22 @@ TimeStamp <-
   OUTPUT_FOLDER %>%
   sub('Social Scoreboard output ',"",.,fixed=TRUE)
 
+message('\nImporting past runs and merging...')
+
 PastRuns <-
   list.files(pattern='^Scoreboard run .+\\.Rds$') %>% 
   `if`(length(.)>0,
        sort(.) %>% rev %>% 
-         lapply(readRDS) %>% 
+         lapply(\(x) {cat(x,sep='\n'); readRDS(x)}) %>% 
          Reduce(x=.,
-                f=\(dt1,dt2) 
-                merge(dt1,dt2, all=TRUE,
-                      by=c('INDIC_NUM','name','time','geo'))),
+                f=\(dt1,dt2) {
+                  cat('merging...\n')
+                  merge(dt1,dt2, all=TRUE,
+                        by=c('INDIC_NUM','name','time','geo'))
+                }),
        .)
+
+message('\nSaving the current run...')
 
 CurrentRun <-
   SCOREBOARD_GRAND_TABLE %>% 
@@ -33,6 +39,9 @@ CurrentRun <-
   setnames(c('value_','flags_'),
            c('value','flags') %>% paste(TimeStamp)) %T>% 
   saveRDS(paste0('Scoreboard run ',TimeStamp,'.Rds'))
+
+message('Merging current run with past runs\n',
+        'and saving the comparison...\n')
 
 if (is.data.table(PastRuns))
   CurrentRun %>% 

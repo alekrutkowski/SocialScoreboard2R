@@ -41,12 +41,14 @@ nonweightedAverages <- function(dt)
   dt %>% 
   rowbind(.[, .(geo='EUnw',
                 value_=mean(value_[geo %in% EU_Members_geo_codes],
-                            na.rm=TRUE) %>% round(2))
+                            na.rm=TRUE) %>% round(2) %>% 
+                  ifelse(is.nan(.),NA_real_,.)) # for mean of numeric(0)
             , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
           , fill=TRUE) %>%
   rowbind(.[, .(geo='EAnw',
                 value_=mean(value_[geo %in% EA_Members_geo_codes],
-                            na.rm=TRUE) %>% round(2))
+                            na.rm=TRUE) %>% round(2) %>% 
+                  ifelse(is.nan(.),NA_real_,.)) # for mean of numeric(0)
             , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
           , fill=TRUE)
 
@@ -165,8 +167,8 @@ Reduce(
                       SCOREBOARD_LAGS_DIFFS %>%
                   .[INDIC_NUM==indic_num &
                       (time==prevailing_latest_year | time==prevailing_latest_year-10 | time==prevailing_latest_year-15)] %>%
-                  .[, num_of_geos := length(geo[isNotNA(value_)]), by=.(INDIC_NUM,time)] %>% 
-                  .[!num_of_geos<10] %>% 
+                  # .[, num_of_geos := length(geo[isNotNA(value_)]), by=.(INDIC_NUM,time)] %>% 
+                  # .[!num_of_geos<10] %>% 
                   nonweightedAverages() %>% 
                   reshapeAndSort()
                 num_of_cols <-

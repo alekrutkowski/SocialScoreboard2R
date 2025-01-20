@@ -98,7 +98,7 @@ checkFlags <- function(dt, flag)
          init = logical(nrow(dt)),
          f = function(i,x) i | grepl(flag,x))
 
-MIN_NUMBER_OF_COUNTRIES <- 18L
+MIN_NUMBER_OF_COUNTRIES <- 1
 
 CURRENT_YEAR <-
   Sys.Date() %>% 
@@ -296,9 +296,9 @@ SCOREBOARD_LAGS_DIFFS <-
   merge( # needed for correct shifts
     expand.grid(INDIC_NUM=unique(.$INDIC_NUM)
                   %without% ### EXCEPTIONS to the normal 1-year difference !!!
-                  SCOREBOARD_NAMES_DESCRIPTIONS %>% 
+                  (SCOREBOARD_NAMES_DESCRIPTIONS %>% 
                   .[!(is_regular_annual_timeseries), INDIC_NUM] %>% 
-                  as.character,
+                  as.character),
                   # c("09500_ex-50",
                   #   "09510_ex-49",
                   #   "09520_ex-48",
@@ -323,7 +323,8 @@ SCOREBOARD_LAGS_DIFFS <-
     , by=.(INDIC_NUM,geo)] %>% 
   .[time <= latest_year_individual] %>% 
   .[, prevailing_latest_year := 
-      round(mean(latest_year_individual))
+      # round(mean(latest_year_individual))
+      max(latest_year_individual)
     , by=INDIC_NUM] %>% 
   .[time <= prevailing_latest_year] %>% 
   setorder(INDIC_NUM,geo,time) %>% 
