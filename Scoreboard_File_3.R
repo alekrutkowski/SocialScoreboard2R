@@ -161,36 +161,36 @@ SPPM_file <-
   paste0("//net1.cec.eu.int/EMPL/F/F4/04 Data and tools/Reports/SPPM Dashboard/config",
          "/SPPM Dashboard/Variance_significativity_2008_2019_2022_2023_SPPM.xlsx")
 EPM_file <-
-  paste0("//net1.cec.eu.int/EMPL/F/F4/04 Data and tools/Reports/EPM Dashboard/config",
-         "/EPM_significances2023.csv")
+  paste0("//net1.cec.eu.int/EMPL/F/F4/04 Data and tools/Reports/EPM Dashboard/config/",
+         "Variance_annual_changes_2022_2023_results - PROVISIONAL.xlsx")
 # SPPM = Excel worksheet name in `SPPM_file`
-# EPM = Excel file "IndicatorID" column code in `EPM_file`
+# EPM = Excel worksheet name in `EPM_file`
 SignificanceDataLocations <- "
-| INDIC_NUM    | SPPM            | EPM   |
-|--------------|-----------------|-------|
-| 10000_ex0    |                 |       |
-| 10010_ex1    |                 | ID17  |
-| 10040_ex4    |                 |       |
-| 10070_ex7    |                 |       |
-| 10170_ex17   |                 | ID13  |
-| 10200_ex20   | S20S80          |       |
-| 10220_ex22   |                 | ID1   |
-| 10310_ex31   |                 |       |
-| 10500_ex50   |                 | ID7   |
-| 10610_ex61   |                 |       |
-| 10660_ex66   | AROPE_NEW       |       |
-| 10830_ex83   | AROPE_NEW_0_17  |       |
-| 10990_ex99   |                 |       |
-| 11060_ex106  |                 |       |
-| 11090_ex109  | Housing_cost    |       |
-| 11130_ex113  |                 |       |
-| 11140_ex114  |                 |       |
+| INDIC_NUM    | SPPM            | EPM                   |
+|--------------|-----------------|-----------------------|
+| 10000_ex0    |                 |                       |
+| 10010_ex1    |                 | 03_Early leavers      |
+| 10040_ex4    |                 |                       |
+| 10070_ex7    |                 |                       |
+| 10170_ex17   |                 | 17_Gender gap         |
+| 10200_ex20   | S20S80          |                       |
+| 10220_ex22   |                 | 05_Empl_20_64         |
+| 10310_ex31   |                 | 11_Unempl rate 15-74  |
+| 10500_ex50   |                 | 21_Long_term          |
+| 10610_ex61   |                 |                       |
+| 10660_ex66   | AROPE_NEW       |                       |
+| 10830_ex83   | AROPE_NEW_0_17  |                       |
+| 10990_ex99   |                 |                       |
+| 11060_ex106  |                 |                       |
+| 11090_ex109  | Housing_cost    |                       |
+| 11130_ex113  |                 |                       |
+| 11140_ex114  |                 |                       |
 " %>% readMarkDownTable %>%
   # .[SPPM!="" | EPM!=""] %>% 
   melt(id.vars='INDIC_NUM',
-       variable.name="source_file", value.name="sheet_or_IndicatorID",
+       variable.name="source_file", value.name="worksheet",
        variable.factor=FALSE) %>% 
-  .[sheet_or_IndicatorID!=""] %>% 
+  .[worksheet!=""] %>% 
   split(by='INDIC_NUM')
 
 importFromSPPM <- function(sheet)
@@ -201,11 +201,13 @@ importFromSPPM <- function(sheet)
   .[, significant := significant=='Y'] %>% 
   .[geo %in% EU_Members_geo_codes]
 
-importFromEPM <- function(IndicatorID.)
-  fread(EPM_file, header=TRUE) %>% 
-  .[IndicatorID==IndicatorID.] %>% 
-  .[, significant := short_boolean=='Yes'] %>% 
-  .[,.(geo,significant)] %>% 
+importFromEPM <- function(sheet)
+  read_xlsx(EPM_file, sheet, start_row=3, cols=c(2,6),
+            col_names=FALSE) %>% 
+  as.data.table %>% 
+  setnames(c('geo','significant')) %>% 
+  .[, significant := significant=='Yes'] %>% 
+  .[, geo := geo %>% ifelse(.=='FR_metrop','FR',.)] %>% 
   .[geo %in% EU_Members_geo_codes]
 
 Significances <-

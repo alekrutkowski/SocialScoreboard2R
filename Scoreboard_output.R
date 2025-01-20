@@ -170,6 +170,11 @@ qualityChecksTable <- function(SCOREBOARD_GRAND_TABLE)
         colnames(.) %without% colnames(SCOREBOARD_GRAND_TABLE))
     , with=FALSE]
 
+areRegularAnnualTimePoints <- function(uniq_years)
+  sort(uniq_years) %>% 
+  {. - shift(.)} %>% 
+  tail(-1) %>% 
+  {length(.)!=0 && all(.==1)}
 
 # Actions -----------------------------------------------------------------
 
@@ -234,7 +239,14 @@ SCOREBOARD_NAMES_DESCRIPTIONS <-
                          type = SCOREBOARD_INDICATORS[[x]]$type,
                          url = SCOREBOARD_INDICATORS[[x]]$url,
                          high_is_good = SCOREBOARD_INDICATORS[[x]]$high_is_good,
-                         reference_in_scores = SCOREBOARD_INDICATORS[[x]]$reference_in_scores)) %>% 
+                         reference_in_scores = 
+                           SCOREBOARD_INDICATORS[[x]]$reference_in_scores,
+                         is_regular_annual_timeseries =
+                           SCOREBOARD_INDICATORS[[x]]$value %>%
+                           .[isNotNA(value_), time] %>% 
+                           as.integer %>% 
+                           unique %>% 
+                           areRegularAnnualTimePoints)) %>% 
   rbindlist()
 
 SCOREBOARD_INDIC_NUM__reference_name <- 
@@ -284,19 +296,22 @@ SCOREBOARD_LAGS_DIFFS <-
   merge( # needed for correct shifts
     expand.grid(INDIC_NUM=unique(.$INDIC_NUM)
                   %without% ### EXCEPTIONS to the normal 1-year difference !!!
-                  c("09500_ex-50",
-                    "09510_ex-49",
-                    "09520_ex-48",
-                    "09530_ex-47",
-                    "09540_ex-46",
-                    "09550_ex-45",
-                    "09560_ex-44",
-                    "09570_ex-43",
-                    "09580_ex-42",
-                    "10000_ex0",
-                    "10040_ex4",
-                    "10050_ex5",
-                    "10060_ex6" ),
+                  SCOREBOARD_NAMES_DESCRIPTIONS %>% 
+                  .[!(is_regular_annual_timeseries), INDIC_NUM] %>% 
+                  as.character,
+                  # c("09500_ex-50",
+                  #   "09510_ex-49",
+                  #   "09520_ex-48",
+                  #   "09530_ex-47",
+                  #   "09540_ex-46",
+                  #   "09550_ex-45",
+                  #   "09560_ex-44",
+                  #   "09570_ex-43",
+                  #   "09580_ex-42",
+                  #   "10000_ex0",
+                  #   "10040_ex4",
+                  #   "10050_ex5",
+                  #   "10060_ex6" ),
                 geo=unique(.$geo),
                 time=min(.$time,na.rm=TRUE):max(.$time,na.rm=TRUE)),
     by=c('INDIC_NUM','geo','time'),
