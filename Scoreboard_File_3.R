@@ -95,60 +95,61 @@ if (length(template_worksheet_names)<length(dta_list %>% names))
        ', there should be ',length(dta_list %>% names),'.\n',
        'Add ',length(dta_list %>% names)-length(template_worksheet_names),' worksheets (with any names).')
 
-Reduce(init=source_excel_template,
-       x=seq_along(template_worksheet_names),
-       f=function(wb,x) {
-         if (dta_list %>% names %>% .[x] %>% is.na) # too many worksheets compared to the INDIC_NUMs
-           wb_remove_worksheet(wb,x) else {
-             indic_num <-
-               dta_list %>% names %>% .[x]
-             cat('Indic',indic_num,'-> sheet',template_worksheet_names[x],'\n')
-             indic_name <-
-               SCOREBOARD_NAMES_DESCRIPTIONS[INDIC_NUM==indic_num, name]
-             dta <-
-               dta_list_2[[indic_num]]
-             min_level <-
-               dta[, min(value_latest_value, na.rm=TRUE)]
-             max_level <-
-               dta[, max(value_latest_value, na.rm=TRUE)]
-             min_change <-
-               dta[, min(value_change, na.rm=TRUE)]
-             max_change <-
-               dta[, max(value_change, na.rm=TRUE)]
-             avg_level <-
-               dta[, mean(value_latest_value, na.rm=TRUE)]
-             avg_change <-
-               dta[, mean(value_change, na.rm=TRUE)]
-             wb %>% 
-               # wb_set_sheet_names(old=x, new=indic_num) %>% 
-               wb_add_data(sheet=x, x=indic_name, start_row=5, start_col=11) %>% 
-               wb_add_data(sheet=x, x=years[[indic_num]][, time] %>% unique, start_row=6, start_col=11) %>% 
-               wb_add_data(sheet=x, x=paste(indic_name,'- change'), start_row=9, start_col=11) %>% 
-               wb_add_data(sheet=x, x=dta_list[[indic_num]] %>% 
-                             merge(data.table(score_level_label=c('5 Very low',
-                                                                  '4 Low',
-                                                                  '3 On average',
-                                                                  '2 High',
-                                                                  '1 Very High')),
-                                   by='score_level_label', all.y=TRUE) %>% # to include missing countries
-                             setorder(score_level_label) %>% 
-                             .[, score_level_label := NULL],
-                           start_row=10, start_col=3, col_names=FALSE,
-                           na.strings="") %>% 
-               wb_add_data(sheet=x, x=dta_list_2[[indic_num]] %>% 
-                             merge(data.table(geo=EU_Members_geo_codes),
-                                   by='geo', all.y=TRUE) %>% # to include missing countries
-                             setorder(geo),
-                           start_row=14, start_col=10, col_names=FALSE) %>% 
-               wb_add_data__in_multiple_locations(sheet=x, min_level, c('K43','K48')) %>% 
-               wb_add_data__in_multiple_locations(sheet=x, max_level, c('K44','K49')) %>% 
-               wb_add_data__in_multiple_locations(sheet=x, avg_level, c('K45','K51','K52')) %>% 
-               wb_add_data__in_multiple_locations(sheet=x, min_change, c('L43','L51')) %>% 
-               wb_add_data__in_multiple_locations(sheet=x, max_change, c('L44','L52')) %>% 
-               wb_add_data__in_multiple_locations(sheet=x, avg_change, c('L45','L48','L49'))
-           }
-       }
-) %>% 
+File3 <-
+  Reduce(init=source_excel_template,
+         x=seq_along(template_worksheet_names),
+         f=function(wb,x) {
+           if (dta_list %>% names %>% .[x] %>% is.na) # too many worksheets compared to the INDIC_NUMs
+             wb_remove_worksheet(wb,x) else {
+               indic_num <-
+                 dta_list %>% names %>% .[x]
+               cat('Indic',indic_num,'-> sheet',template_worksheet_names[x],'\n')
+               indic_name <-
+                 SCOREBOARD_NAMES_DESCRIPTIONS[INDIC_NUM==indic_num, name]
+               dta <-
+                 dta_list_2[[indic_num]]
+               min_level <-
+                 dta[, min(value_latest_value, na.rm=TRUE)]
+               max_level <-
+                 dta[, max(value_latest_value, na.rm=TRUE)]
+               min_change <-
+                 dta[, min(value_change, na.rm=TRUE)]
+               max_change <-
+                 dta[, max(value_change, na.rm=TRUE)]
+               avg_level <-
+                 dta[, mean(value_latest_value, na.rm=TRUE)]
+               avg_change <-
+                 dta[, mean(value_change, na.rm=TRUE)]
+               wb %>% 
+                 # wb_set_sheet_names(old=x, new=indic_num) %>% 
+                 wb_add_data(sheet=x, x=indic_name, start_row=5, start_col=11) %>% 
+                 wb_add_data(sheet=x, x=years[[indic_num]][, time] %>% unique, start_row=6, start_col=11) %>% 
+                 wb_add_data(sheet=x, x=paste(indic_name,'- change'), start_row=9, start_col=11) %>% 
+                 wb_add_data(sheet=x, x=dta_list[[indic_num]] %>% 
+                               merge(data.table(score_level_label=c('5 Very low',
+                                                                    '4 Low',
+                                                                    '3 On average',
+                                                                    '2 High',
+                                                                    '1 Very High')),
+                                     by='score_level_label', all.y=TRUE) %>% # to include missing countries
+                               setorder(score_level_label) %>% 
+                               .[, score_level_label := NULL],
+                             start_row=10, start_col=3, col_names=FALSE,
+                             na.strings="") %>% 
+                 wb_add_data(sheet=x, x=dta_list_2[[indic_num]] %>% 
+                               merge(data.table(geo=EU_Members_geo_codes),
+                                     by='geo', all.y=TRUE) %>% # to include missing countries
+                               setorder(geo),
+                             start_row=14, start_col=10, col_names=FALSE) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, min_level, c('K43','K48')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, max_level, c('K44','K49')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, avg_level, c('K45','K51','K52')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, min_change, c('L43','L51')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, max_change, c('L44','L52')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, avg_change, c('L45','L48','L49'))
+             }
+         }
+  ) %>% 
   wb_save(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx'))
 
 
@@ -216,9 +217,9 @@ Significances <-
                      stop('Unknown data significance source file.')) %>% 
            {.(x$worksheet)})
 
-File3 <-
-  paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx') %>% 
-  wb_load()
+# File3 <-
+#   paste0(OUTPUT_FOLDER,'/Social Scoreboard file 3.xlsx') %>% 
+#   wb_load()
 
 INDIC_NUM_codes <-
   names(dta_list)

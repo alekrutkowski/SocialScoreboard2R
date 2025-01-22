@@ -37,20 +37,22 @@ worksheets_dt_list <- '
   # Cut_offs -- Indicator name  t1	t2	t3	t4
   split(by='worksheet')
 
+
+nonweightedAverage <- function(dt, new_code, country_codes)
+  dt %>% 
+  rowbind(.[, .(geo=new_code,
+                value_=mean(value_[geo %in% country_codes],
+                            na.rm=TRUE) %>% round(2) %>% 
+                  ifelse(is.nan(.),NA_real_,.)) # for mean of numeric(0)
+            , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
+          , fill=TRUE) 
+
+
 nonweightedAverages <- function(dt)
   dt %>% 
-  rowbind(.[, .(geo='EUnw',
-                value_=mean(value_[geo %in% EU_Members_geo_codes],
-                            na.rm=TRUE) %>% round(2) %>% 
-                  ifelse(is.nan(.),NA_real_,.)) # for mean of numeric(0)
-            , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
-          , fill=TRUE) %>%
-  rowbind(.[, .(geo='EAnw',
-                value_=mean(value_[geo %in% EA_Members_geo_codes],
-                            na.rm=TRUE) %>% round(2) %>% 
-                  ifelse(is.nan(.),NA_real_,.)) # for mean of numeric(0)
-            , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
-          , fill=TRUE)
+  nonweightedAverage('EUnw', EU_Members_geo_codes) %>% 
+  nonweightedAverage('EAnw', EA_Members_geo_codes) 
+
 
 reshapeAndSort <- function(dt)
   dt %>% 
