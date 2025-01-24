@@ -48,7 +48,8 @@ ExcelRowsAndCols <-
 HistoricalFile5 <-
   list.files(path='O:/European Semester – Coordination/02 Horizontal issues/02 Analytical tools/Social Scoreboard',
              pattern="file ?5.*\\.xlsx$",
-             full.names=TRUE) %T>%
+             full.names=TRUE) %>% 
+  grep('^(?!.*\\/~).*', ., perl=TRUE, value=TRUE) %T>% # ignoring those with /~ (hidden temp files)
   {stopifnot('None or more than 1 historical File 5 found!' = length(.)==1)} %>% 
   wb_load()
 

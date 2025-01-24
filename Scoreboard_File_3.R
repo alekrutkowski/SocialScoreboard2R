@@ -241,7 +241,9 @@ Reduce(init=File3,
            .[[INDIC_NUM]] %>% 
            merge(geos, all.y=TRUE, by='geo') %>% 
            .[, geo := geo %>%
-               ifelse(significant,paste0(.,'*'),.)] %>% 
+               ifelse(is.na(significant),.,
+                      ifelse(significant,paste0(.,'*'),
+                             .))] %>% 
            setorder(geo_order) %>% 
            .[,.(geo)] %>% 
            wb_add_data(wb, sheet_num, x=.,
