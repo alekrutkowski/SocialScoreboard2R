@@ -18,8 +18,8 @@ CycleYear <- local({
   # Extract numeric year and month from the date
   yr <- as.integer(format(date, "%Y"))
   mo <- as.integer(format(date, "%m"))
-  # If month is May (5) or later, add 1 to the year
-  if (mo >= 5) yr + 1  else yr
+  # If month is April (4) or later, add 1 to the year
+  if (mo >= 4) yr + 1  else yr
 }) %>% as.character
 
 source_excel_template <-

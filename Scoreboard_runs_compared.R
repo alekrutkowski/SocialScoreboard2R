@@ -35,12 +35,24 @@ message('\nSaving the current run...')
          is.na(x) & !is.na(y) | !is.na(x) & is.na(y),
          x != y)
 
+removeColon <- function(charvec)
+  charvec %>% 
+  sub(': ',"",.,fixed=TRUE) %>% 
+  sub(':',"",.,fixed=TRUE)
+
 compareColumns <- function(dt, prefix)
   Reduce(init=dt,
          x=colnames(dt) %>% grep(prefix,.,value=TRUE) %>% makePairs,
-         f=function(dt, col_name_pair)
-           dt[, paste('Change in',col_name_pair[1],'compared to',col_name_pair[2]) :=
-                get(col_name_pair[1]) %not equal% get(col_name_pair[2])])
+         f=function(dt, col_name_pair) {
+           first <- col_name_pair[1]
+           second <- col_name_pair[2]
+           `if`(prefix=='^flags',
+                dt[ c(first, second) := 
+                      .(removeColon(get(first)), removeColon(get(second)))],
+                dt) %>% 
+             .[, paste('Change in',first,'compared to',second) :=
+                 get(first) %not equal% get(second)]
+         })
 
 CurrentRun <-
   SCOREBOARD_GRAND_TABLE %>% 

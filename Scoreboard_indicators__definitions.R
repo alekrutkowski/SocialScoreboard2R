@@ -657,16 +657,16 @@ value = fromEurostatDataset("une_ltu_a",
     with_filters(sex="F", age="Y15-74", indic_em="LTU", unit="PC_ACT"))
 )
        
-inside(SCOREBOARD_INDICATORS, indicator_number = "10530_ex53") = 
-specification(
-name = "Employment in current job by duration",
-chapter = "Labour market dynamics",
-group = "Fair working conditions",
-type = "S",
-high_is_good = TRUE,
-value = fromEurostatDataset("tepsr_wc220", 
-    with_filters(duration="TOTAL"))
-)
+# inside(SCOREBOARD_INDICATORS, indicator_number = "10530_ex53") = 
+# specification(
+# name = "Employment in current job by duration",
+# chapter = "Labour market dynamics",
+# group = "Fair working conditions",
+# type = "S",
+# high_is_good = TRUE,
+# value = fromEurostatDataset("tepsr_wc220", 
+#     with_filters(duration="TOTAL"))
+# )
        
 inside(SCOREBOARD_INDICATORS, indicator_number = "10540_ex54") = 
 specification(

@@ -54,9 +54,10 @@ nonweightedAverages <- function(dt)
   nonweightedAverage('EAnw', EA_Members_geo_codes) 
 
 
-reshapeAndSort <- function(dt)
+reshapeAndSort <- function(dt, num_of_rounding_digits=1)
   dt %>% 
-  .[,value_ := if (is.numeric(value_)) round(value_,2) else value_] %>% 
+  .[,value_ := if (!is.numeric(value_)) value_ else 
+    ifelse(INDIC_NUM=="10200_ex20",round(value_,2),round(value_,num_of_rounding_digits))] %>% 
   dcast(paste('geo ~',
               ifelse('time' %in% colnames(.),'time','variable')) %>% 
           as.formula(), 
@@ -154,7 +155,7 @@ Reduce(
                   .[INDIC_NUM==indic_num & time==prevailing_latest_year] %>%
                   melt(id.vars='geo', measure.vars=c("change","Diff_EU","Diff_MSEU"),
                        value.name='value_') %>% 
-                  nonweightedAverages() %>%
+                  nonweightedAverages(num_of_rounding_digits=2) %>%
                   reshapeAndSort() else
                     # Scores
                     if (ws_name=='Scores')
@@ -162,7 +163,7 @@ Reduce(
                   .[INDIC_NUM==indic_num] %>%
                   melt(id.vars='geo', measure.vars=c("score1_L","score2_D"),
                        value.name='value_')  %>% 
-                  nonweightedAverages()   %>%
+                  nonweightedAverages(num_of_rounding_digits=2)   %>%
                   reshapeAndSort()  else
                     # Comparison
                     if (ws_name=='Comparison')

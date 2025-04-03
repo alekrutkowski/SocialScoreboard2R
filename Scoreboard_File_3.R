@@ -84,7 +84,7 @@ dta_list_2 <-
   split(by='INDIC_NUM', keep.by=FALSE)
 
 source_excel_template <-
-  wb_load('Social Scoreboard file3 TEMPLATE.xlsm')
+  wb_load('Social Scoreboard file3 TEMPLATE.xlsx')
 
 template_worksheet_names <-
   wb_get_sheet_names(source_excel_template)
