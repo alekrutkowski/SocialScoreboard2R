@@ -31,7 +31,8 @@ wb_add_data__in_multiple_locations <- function(wb, sheet, dta., dims.)
   Reduce(init=wb,
          x=dims.,
          f=function(wb,x)
-           wb_add_data(wb, sheet=sheet, x=dta., dims=x, col_names=FALSE))
+           wb_add_data(wb, sheet=sheet, x=dta., dims=x, col_names=FALSE,
+                       na.strings=""))
 
 # data for the colorful table
 dta_list <-
@@ -122,9 +123,9 @@ File3 <-
                  dta[, mean(value_change, na.rm=TRUE)]
                wb %>% 
                  # wb_set_sheet_names(old=x, new=indic_num) %>% 
-                 wb_add_data(sheet=x, x=indic_name, start_row=5, start_col=11) %>% 
-                 wb_add_data(sheet=x, x=years[[indic_num]][, time] %>% unique, start_row=6, start_col=11) %>% 
-                 wb_add_data(sheet=x, x=paste(indic_name,'- change'), start_row=9, start_col=11) %>% 
+                 wb_add_data(sheet=x, x=indic_name, start_row=18, start_col=2) %>% 
+                 wb_add_data(sheet=x, x=years[[indic_num]][, time] %>% unique, start_row=19, start_col=2) %>% 
+                 wb_add_data(sheet=x, x=paste(indic_name,'- change'), start_row=22, start_col=2) %>% 
                  wb_add_data(sheet=x, x=dta_list[[indic_num]] %>% 
                                merge(data.table(score_level_label=c('5 Very low',
                                                                     '4 Low',
@@ -140,13 +141,14 @@ File3 <-
                                merge(data.table(geo=EU_Members_geo_codes),
                                      by='geo', all.y=TRUE) %>% # to include missing countries
                                setorder(geo),
-                             start_row=14, start_col=10, col_names=FALSE) %>% 
-                 wb_add_data__in_multiple_locations(sheet=x, min_level, c('K43','K48')) %>% 
-                 wb_add_data__in_multiple_locations(sheet=x, max_level, c('K44','K49')) %>% 
-                 wb_add_data__in_multiple_locations(sheet=x, avg_level, c('K45','K51','K52')) %>% 
-                 wb_add_data__in_multiple_locations(sheet=x, min_change, c('L43','L51')) %>% 
-                 wb_add_data__in_multiple_locations(sheet=x, max_change, c('L44','L52')) %>% 
-                 wb_add_data__in_multiple_locations(sheet=x, avg_change, c('L45','L48','L49'))
+                             start_row=27, start_col=1, col_names=FALSE,
+                             na.strings="") %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, min_level, c('B56','B61')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, max_level, c('B57','B62')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, avg_level, c('B58','B64','B65')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, min_change, c('C56','C64')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, max_change, c('C57','C65')) %>% 
+                 wb_add_data__in_multiple_locations(sheet=x, avg_change, c('C58','C61','C62'))
              }
          }
   ) %>% 
@@ -228,8 +230,8 @@ Reduce(init=File3,
        x=seq_along(dta_list),
        f=function(wb,sheet_num) {
          geos <-
-           wb_to_df(wb, sheet=sheet_num, cols=14,
-                    rows=14:(14+length(EU_Members_geo_codes)-1),
+           wb_to_df(wb, sheet=sheet_num, cols=5,
+                    rows=27:(27+length(EU_Members_geo_codes)-1),
                     col_names=FALSE) %>% 
            as.data.table() %>% 
            setnames(new='geo') %>% 
@@ -247,7 +249,7 @@ Reduce(init=File3,
            setorder(geo_order) %>% 
            .[,.(geo)] %>% 
            wb_add_data(wb, sheet_num, x=.,
-                       start_row=14, start_col=14,
+                       start_row=27, start_col=5,
                        col_names=FALSE) else {
                          cat('<-skipped',"  "); wb
                        }
