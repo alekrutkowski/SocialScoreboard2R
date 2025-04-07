@@ -15,6 +15,7 @@ worksheets_dt_list <- '
 | Flags                           | H       |
 | Headline_flags                  | H       |
 | Differences                     | H       |
+| Differences_flags               | H       |
 | Scores                          | H       |
 | Components                      | C       |
 | Components_flags                | C       |
@@ -37,11 +38,15 @@ worksheets_dt_list <- '
   # Cut_offs -- Indicator name  t1	t2	t3	t4
   split(by='worksheet')
 
+asNumber <- function(x)
+  if (is.numeric(x)) x else
+    gsub("[^0-9.-]", "", x) %>% 
+  as.numeric()
 
 nonweightedAverage <- function(dt, new_code, country_codes)
   dt %>% 
   rowbind(.[, .(geo=new_code,
-                value_=mean(value_[geo %in% country_codes],
+                value_=mean(value_[geo %in% country_codes] %>% asNumber,
                             na.rm=TRUE) %>% round(2) %>% 
                   ifelse(is.nan(.),NA_real_,.)) # for mean of numeric(0)
             , by=eval(ifelse('time' %in% colnames(.),'time','variable'))]
@@ -54,10 +59,10 @@ nonweightedAverages <- function(dt)
   nonweightedAverage('EAnw', EA_Members_geo_codes) 
 
 
-reshapeAndSort <- function(dt, num_of_rounding_digits=1)
-  dt %>% 
+reshapeAndSort <- function(dt, indic_num, num_of_rounding_digits=1)
+  dt %>% copy %>% 
   .[,value_ := if (!is.numeric(value_)) value_ else 
-    ifelse(INDIC_NUM=="10200_ex20",round(value_,2),round(value_,num_of_rounding_digits))] %>% 
+    `if`(indic_num=="10200_ex20",round(value_,2),round(value_,num_of_rounding_digits))] %>% 
   dcast(paste('geo ~',
               ifelse('time' %in% colnames(.),'time','variable')) %>% 
           as.formula(), 
@@ -75,10 +80,12 @@ reshapeAndSort <- function(dt, num_of_rounding_digits=1)
                          gsub(' NA',"",x,fixed=TRUE)),
                   x))]
 
+between <- function(low,high,unit)
+  paste0('between ',low,unit,' and ',high,unit)
 
 Reduce(
   init=wb_workbook(),
-  x=worksheets_dt_list,
+  x=worksheets_dt_list, # list(data.table(worksheet='Differences_flags',type='H')),  # 
   f=function(wb,ws_dt) {
     ws_name <- 
       ws_dt$worksheet
@@ -89,6 +96,7 @@ Reduce(
       switch(ws_name,
              'Headline' = c("Indicator","bookmarks","year",rows_template$geo),
              'Differences' = c("Indicator","diff",rows_template$geo),
+             'Differences_flags' = c("Indicator","diff",rows_template$geo),
              'Scores' = c("Indicator","score_type",rows_template$geo),
              c("Indicator","year",rows_template$geo)
       )
@@ -106,21 +114,36 @@ Reduce(
           .[,c('INDIC_NUM','type') := NULL] %>% 
           .[,.(name,
                reference_latest_value,std_latest_value,t1_latest_value,t2_latest_value,t3_latest_value,t4_latest_value,
-               reference_change,std_change,t1_change,t2_change,t3_change,t4_change)] %>% 
+               reference_change,std_change,t1_change,t2_change,t3_change,t4_change, high_is_good)] %>% 
           na.omit() %>%
-          .[!duplicated(.)] %>% # percentiles/cuttofs are repeated across country
+          .[!duplicated(.)] %>% # percentiles/cutoffs are repeated across country
           `if`(ws_name=='Cut_offs II',
                setnames(.,\(x) x %>% 
                           sub('_latest_value',' 1_levels',.,fixed=TRUE) %>% 
                           sub('_change',' 2_changes',.,fixed=TRUE)) %>% 
                  .[, id := .I] %>% 
-                 melt(id.vars=c('id','name')) %>%  
+                 melt(id.vars=c('id','name','high_is_good')) %>%  
                  .[, c('var.','level or change') := tstrsplit(variable,split=' ')] %>% 
-                 dcast(id + name + `level or change` ~ var., value.var='value',
+                 .[, value := round(value,1)] %>% 
+                 dcast(id + name + `level or change` + high_is_good ~ var.,
+                       value.var='value',
                        fun.aggregate=identity) %>% 
                  setorder(id) %>% 
-                 .[,.(name, `level or change`,
-                      reference, std, t1, t2, t3, t4)],
+                 .[,.(name, `level or change`, high_is_good,
+                      reference, std, t1, t2, t3, t4)] %>% 
+                 .[, unit := nswitch(`level or change`,
+                                     '1_levels', '%',
+                                     '2_changes', ' pps',
+                                     default="")] %>% 
+                 .[, unit := nswitch(name,
+                                     'Income quintile ratio (S80/S20)', "",
+                                     'Gross disposable household income (GDHI) per capita growth (index, 2008=100)', "",
+                                     default=unit)] %>% 
+                 .[, `Very low` := paste0('less than ',t1,unit)] %>% 
+                 .[, `Low` := between(t1,t2,unit)] %>% 
+                 .[, `On average` := between(t2,t3,unit)] %>% 
+                 .[, `High` := between(t3,t4,unit)] %>% 
+                 .[, `Very high` := paste0('more than ',t4,unit)],
                .)
         wb_add_data(., x=dta, start_col=1, start_row=1, na.strings="") %>%
           wb_freeze_pane(first_active_row=2,
@@ -139,7 +162,7 @@ Reduce(
                 wb <-
                   .list$wb
                 dta <-
-                  if (ws_name %not in% c('Differences','Scores','Comparison','Cut_offs','Cut_offs II'))
+                  if (ws_name %not in% c('Differences','Differences_flags','Scores','Comparison','Cut_offs','Cut_offs II'))
                     SCOREBOARD_LAGS_DIFFS %>% 
                   .[INDIC_NUM==indic_num & 
                       (time==prevailing_latest_year | time==previous_year | time==previous_year_2)] %>%
@@ -148,23 +171,40 @@ Reduce(
                   `if`(grepl('_flags',ws_name), .[, value_ := 
                                                     paste(round(value_,2) %>% ifelse(is.na(.),"",.),
                                                           flags_)], .) %>%  
-                  reshapeAndSort() else
+                  reshapeAndSort(indic_num) else
                     # Differences
                     if (ws_name=='Differences')
-                      SCOREBOARD_LAGS_DIFFS %>%
+                      SCOREBOARD_LAGS_DIFFS %>% 
                   .[INDIC_NUM==indic_num & time==prevailing_latest_year] %>%
                   melt(id.vars='geo', measure.vars=c("change","Diff_EU","Diff_MSEU"),
                        value.name='value_') %>% 
-                  nonweightedAverages(num_of_rounding_digits=2) %>%
-                  reshapeAndSort() else
+                  nonweightedAverages() %>%
+                  reshapeAndSort(indic_num, num_of_rounding_digits=2) else
+                    # Differences_flags
+                    if (ws_name=='Differences_flags')
+                      SCOREBOARD_LAGS_DIFFS %>% 
+                  .[INDIC_NUM==indic_num] %>% 
+                  .[, Diff_EU := paste(Diff_EU %>% formatC(digits=2,format="f") %>% ifelse(.==" NA","",.),
+                                       flags_)] %>% 
+                  .[, Diff_MSEU := Diff_MSEU %>% formatC(digits=2,format="f") %>% ifelse(.==" NA","",.)] %>% 
+                  setorder(INDIC_NUM,geo,time) %>% 
+                  .[, shflags_ := shift(flags_), by=.(INDIC_NUM,geo)] %>% 
+                  .[, change := paste(change %>% formatC(digits=2,format="f") %>% ifelse(.==" NA","",.),
+                                      flags_ %>% ifelse(is.na(.),"",.),shflags_ %>% ifelse(is.na(.),"",.)) %>% 
+                      gsub('  '," ",.,fixed=TRUE)] %>% 
+                  .[time==prevailing_latest_year] %>%
+                  melt(id.vars='geo', measure.vars=c("change","Diff_EU","Diff_MSEU"),
+                       value.name='value_') %>% 
+                  nonweightedAverages() %>%
+                  reshapeAndSort(indic_num, num_of_rounding_digits=2) else
                     # Scores
                     if (ws_name=='Scores')
                       SCOREBOARD_SCORES %>% 
                   .[INDIC_NUM==indic_num] %>%
                   melt(id.vars='geo', measure.vars=c("score1_L","score2_D"),
                        value.name='value_')  %>% 
-                  nonweightedAverages(num_of_rounding_digits=2)   %>%
-                  reshapeAndSort()  else
+                  nonweightedAverages()   %>%
+                  reshapeAndSort(indic_num, num_of_rounding_digits=2)  else
                     # Comparison
                     if (ws_name=='Comparison')
                       SCOREBOARD_LAGS_DIFFS %>%
@@ -173,7 +213,7 @@ Reduce(
                   # .[, num_of_geos := length(geo[isNotNA(value_)]), by=.(INDIC_NUM,time)] %>% 
                   # .[!num_of_geos<10] %>% 
                   nonweightedAverages() %>% 
-                  reshapeAndSort()
+                  reshapeAndSort(indic_num)
                 num_of_cols <-
                   ncol(dta)
                 dta_start_row <-

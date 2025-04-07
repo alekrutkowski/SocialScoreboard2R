@@ -47,7 +47,7 @@ compareColumns <- function(dt, prefix)
            first <- col_name_pair[1]
            second <- col_name_pair[2]
            `if`(prefix=='^flags',
-                dt[ c(first, second) := 
+                dt[, c(first, second) := 
                       .(removeColon(get(first)), removeColon(get(second)))],
                 dt) %>% 
              .[, paste('Change in',first,'compared to',second) :=

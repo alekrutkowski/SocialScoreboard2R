@@ -31,8 +31,7 @@ wb_add_data__in_multiple_locations <- function(wb, sheet, dta., dims.)
   Reduce(init=wb,
          x=dims.,
          f=function(wb,x)
-           wb_add_data(wb, sheet=sheet, x=dta., dims=x, col_names=FALSE,
-                       na.strings=""))
+           wb_add_data(wb, sheet=sheet, x=dta., dims=x, col_names=FALSE))
 
 # data for the colorful table
 dta_list <-
@@ -135,14 +134,12 @@ File3 <-
                                      by='score_level_label', all.y=TRUE) %>% # to include missing countries
                                setorder(score_level_label) %>% 
                                .[, score_level_label := NULL],
-                             start_row=10, start_col=3, col_names=FALSE,
-                             na.strings="") %>% 
+                             start_row=10, start_col=3, col_names=FALSE) %>% 
                  wb_add_data(sheet=x, x=dta_list_2[[indic_num]] %>% 
                                merge(data.table(geo=EU_Members_geo_codes),
                                      by='geo', all.y=TRUE) %>% # to include missing countries
                                setorder(geo),
-                             start_row=27, start_col=1, col_names=FALSE,
-                             na.strings="") %>% 
+                             start_row=27, start_col=1, col_names=FALSE) %>% 
                  wb_add_data__in_multiple_locations(sheet=x, min_level, c('B56','B61')) %>% 
                  wb_add_data__in_multiple_locations(sheet=x, max_level, c('B57','B62')) %>% 
                  wb_add_data__in_multiple_locations(sheet=x, avg_level, c('B58','B64','B65')) %>% 

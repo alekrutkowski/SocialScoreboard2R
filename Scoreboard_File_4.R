@@ -93,7 +93,7 @@ Reduce(init=source_excel_template,
                                 color=wb_color(hex=dta_list[[x]] %>% 
                                                  .[INDIC_NUM==template_indic_nums[x2,INDIC_NUM], colour_group] %>% 
                                                  as.character %>% colourNameToHexInk),
-                                name='Calibri',size='10',bold='single') 
+                                name='Calibri',size='10',bold=TRUE) 
            )
        }
 ) %>% 
