@@ -387,8 +387,8 @@ chapter = "Labour force structure",
 group = "Fair working conditions",
 type = "B",
 high_is_good = TRUE,
-value = fromEurostatDataset("lfsa_ergaed", 
-    with_filters(age="Y20-64", isced11="ED0-2", sex="T", unit="PC"))
+value = fromEurostatDataset("lfsi_educ_a", 
+    with_filters(age="Y20-64", isced11="ED0-2", sex="T", unit="PC_POP"))
 )
        
 inside(SCOREBOARD_INDICATORS, indicator_number = "10290_ex29") = 
@@ -398,8 +398,8 @@ chapter = "Labour force structure",
 group = "Fair working conditions",
 type = "B",
 high_is_good = TRUE,
-value = fromEurostatDataset("lfsa_ergaed", 
-    with_filters(age="Y20-64", isced11="ED3_4", sex="T", unit="PC"))
+value = fromEurostatDataset("lfsi_educ_a", 
+    with_filters(age="Y20-64", isced11="ED3_4", sex="T", unit="PC_POP"))
 )
        
 inside(SCOREBOARD_INDICATORS, indicator_number = "10300_ex30") = 
@@ -409,8 +409,8 @@ chapter = "Labour force structure",
 group = "Fair working conditions",
 type = "B",
 high_is_good = TRUE,
-value = fromEurostatDataset("lfsa_ergaed", 
-    with_filters(age="Y20-64", isced11="ED5-8", sex="T", unit="PC"))
+value = fromEurostatDataset("lfsi_educ_a", 
+    with_filters(age="Y20-64", isced11="ED5-8", sex="T", unit="PC_POP"))
 )
        
 inside(SCOREBOARD_INDICATORS, indicator_number = "10310_ex31") = 
@@ -476,8 +476,8 @@ chapter = "Labour force structure",
 group = "Fair working conditions",
 type = "B",
 high_is_good = FALSE,
-value = fromEurostatDataset("lfsa_urgaed", 
-    with_filters(sex="T", age="Y15-74", isced11="ED0-2", unit="PC"))
+value = fromEurostatDataset("une_educ_a", 
+    with_filters(sex="T", age="Y15-74", isced11="ED0-2", unit="PC_ACT"))
 )
        
 inside(SCOREBOARD_INDICATORS, indicator_number = "10370_ex37") = 
@@ -487,8 +487,8 @@ chapter = "Labour force structure",
 group = "Fair working conditions",
 type = "B",
 high_is_good = FALSE,
-value = fromEurostatDataset("lfsa_urgaed", 
-    with_filters(sex="T", age="Y15-74", isced11="ED3_4", unit="PC"))
+value = fromEurostatDataset("une_educ_a", 
+    with_filters(sex="T", age="Y15-74", isced11="ED3_4", unit="PC_ACT"))
 )
        
 inside(SCOREBOARD_INDICATORS, indicator_number = "10380_ex38") = 
@@ -498,8 +498,8 @@ chapter = "Labour force structure",
 group = "Fair working conditions",
 type = "B",
 high_is_good = FALSE,
-value = fromEurostatDataset("lfsa_urgaed", 
-    with_filters(sex="T", age="Y15-74", isced11="ED5-8", unit="PC"))
+value = fromEurostatDataset("une_educ_a", 
+    with_filters(sex="T", age="Y15-74", isced11="ED5-8", unit="PC_ACT"))
 )
        
 inside(SCOREBOARD_INDICATORS, indicator_number = "10390_ex39") = 
