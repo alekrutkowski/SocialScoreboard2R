@@ -165,7 +165,7 @@ Reduce(
                   if (ws_name %not in% c('Differences','Differences_flags','Scores','Comparison','Cut_offs','Cut_offs II'))
                     SCOREBOARD_LAGS_DIFFS %>% 
                   .[INDIC_NUM==indic_num & 
-                      (time==prevailing_latest_year | time==previous_year | time==previous_year_2)] %>%
+                      (time==latest_year_individual | time==previous_year | time==previous_year_2)] %>%
                   nonweightedAverages() %>%
                   `if`(ws_name=='Flags', .[, value_ := flags_], .) %>% 
                   `if`(grepl('_flags',ws_name), .[, value_ := 
@@ -208,8 +208,8 @@ Reduce(
                     # Comparison
                     if (ws_name=='Comparison')
                       SCOREBOARD_LAGS_DIFFS %>%
-                  .[INDIC_NUM==indic_num &
-                      (time==prevailing_latest_year | time==prevailing_latest_year-10 | time==prevailing_latest_year-15)] %>%
+                  .[INDIC_NUM==indic_num &  (time==2008 | time==2013 | time==prevailing_latest_year)] %>% 
+                      # (time==prevailing_latest_year | time==prevailing_latest_year-10 | time==prevailing_latest_year-15)] %>%
                   # .[, num_of_geos := length(geo[isNotNA(value_)]), by=.(INDIC_NUM,time)] %>% 
                   # .[!num_of_geos<10] %>% 
                   nonweightedAverages() %>% 

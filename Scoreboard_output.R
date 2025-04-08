@@ -98,7 +98,7 @@ checkFlags <- function(dt, flag)
          init = logical(nrow(dt)),
          f = function(i,x) i | grepl(flag,x))
 
-MIN_NUMBER_OF_COUNTRIES <- 1
+MIN_NUMBER_OF_COUNTRIES <- 24
 
 CURRENT_YEAR <-
   Sys.Date() %>% 
@@ -285,14 +285,14 @@ SCOREBOARD_LAGS_DIFFS <-
   .[, value_ := as.numeric(value_)] %>% 
   .[isNotNA(value_)] %>% 
   .[geo %in% c(EU_Members_geo_codes,EU_geo_code,EA_geo_code)] %>% 
-  # .[, sufficiently_many_countries :=
-  #     value_[geo %in% EU_Members_geo_codes] %>% 
-  #     {length(.)>=MIN_NUMBER_OF_COUNTRIES}
-  #   , by=.(INDIC_NUM,time)] %>% 
-  # .[, latest_year_overall :=
-  #     suppressWarnings(max(time[sufficiently_many_countries])) %>% # suppressed warning if time[sufficiently_many_countries] is empty i.e. -> max = -Inf
-  #     ifelse(is.infinite(.), NA_integer_, .)
-  #   , by=INDIC_NUM] %>% 
+  .[, sufficiently_many_countries :=
+      value_[geo %in% EU_Members_geo_codes] %>%
+      {length(.)>=MIN_NUMBER_OF_COUNTRIES}
+    , by=.(INDIC_NUM,time)] %>%
+  .[, latest_year_overall :=
+      suppressWarnings(max(time[sufficiently_many_countries])) %>% # suppressed warning if time[sufficiently_many_countries] is empty i.e. -> max = -Inf
+      ifelse(is.infinite(.), NA_integer_, .)
+    , by=INDIC_NUM] %>%
   merge( # needed for correct shifts
     expand.grid(INDIC_NUM=unique(.$INDIC_NUM)
                   %without% ### EXCEPTIONS to the normal 1-year difference !!!
@@ -322,17 +322,18 @@ SCOREBOARD_LAGS_DIFFS <-
       max()
     , by=.(INDIC_NUM,geo)] %>% 
   .[time <= latest_year_individual] %>% 
-  .[, prevailing_latest_year := 
+  .[, prevailing_latest_year := latest_year_overall
       # round(mean(latest_year_individual))
-      max(latest_year_individual)
+      # max(latest_year_individual)
     , by=INDIC_NUM] %>% 
-  .[time <= prevailing_latest_year] %>% 
+  # .[time <= prevailing_latest_year] %>% 
+  .[prevailing_latest_year %>% isNotNA(.)] %>% 
   setorder(INDIC_NUM,geo,time) %>% 
-  .[, previous_year := shift(time) %>% max(na.rm=TRUE)
+  .[, previous_year := time[time<prevailing_latest_year] %>% max(na.rm=TRUE)
     , by=.(INDIC_NUM,geo)] %>% 
-  .[, previous_year_2 := shift(time,2) %>% max(na.rm=TRUE)
+  .[, previous_year_2 := time[time<previous_year] %>% max(na.rm=TRUE)
     , by=.(INDIC_NUM,geo)] %>% 
-  .[, latest_value := value_[time==prevailing_latest_year]
+  .[, latest_value := value_[time==prevailing_latest_year] 
     , by=.(INDIC_NUM,geo)] %>% 
   .[, previous_value := value_[time==previous_year]
     , by=.(INDIC_NUM,geo)] %>%

@@ -71,8 +71,9 @@ Reduce(init=source_excel_template,
                                new_string=EU_Members_geo_names[geo==x, geo_labels]) %>% 
            replaceStringInCell(sheet=x, dims=paste0('A',nrow(template_indic_nums)+3),
                                old_string='DD MMMMM YYYY',
-                               new_string=format(Sys.Date(),"%d %B %Y")) %>% 
-           wb_add_data(sheet=x, x=dta_list[[x]]$value_latest_value,
+                               new_string=format(Sys.Date(),"%e %B %Y") %>% trimws) %>% 
+           wb_add_data(sheet=x,
+                       x=dta_list[[x]]$value_latest_value %>% round(1),
                        start_row=2, start_col=9,
                        na.strings="") %>%
            wb_add_data(sheet=x, start_col=11, start_row=2,
