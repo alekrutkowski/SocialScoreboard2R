@@ -293,29 +293,29 @@ SCOREBOARD_LAGS_DIFFS <-
       suppressWarnings(max(time[sufficiently_many_countries])) %>% # suppressed warning if time[sufficiently_many_countries] is empty i.e. -> max = -Inf
       ifelse(is.infinite(.), NA_integer_, .)
     , by=INDIC_NUM] %>%
-  merge( # needed for correct shifts
-    expand.grid(INDIC_NUM=unique(.$INDIC_NUM)
-                  %without% ### EXCEPTIONS to the normal 1-year difference !!!
-                  (SCOREBOARD_NAMES_DESCRIPTIONS %>% 
-                  .[!(is_regular_annual_timeseries), INDIC_NUM] %>% 
-                  as.character),
-                  # c("09500_ex-50",
-                  #   "09510_ex-49",
-                  #   "09520_ex-48",
-                  #   "09530_ex-47",
-                  #   "09540_ex-46",
-                  #   "09550_ex-45",
-                  #   "09560_ex-44",
-                  #   "09570_ex-43",
-                  #   "09580_ex-42",
-                  #   "10000_ex0",
-                  #   "10040_ex4",
-                  #   "10050_ex5",
-                  #   "10060_ex6" ),
-                geo=unique(.$geo),
-                time=min(.$time,na.rm=TRUE):max(.$time,na.rm=TRUE)),
-    by=c('INDIC_NUM','geo','time'),
-    all=TRUE) %>% 
+  # merge( # needed for correct shifts
+  #   expand.grid(INDIC_NUM=unique(.$INDIC_NUM)
+  #                 %without% ### EXCEPTIONS to the normal 1-year difference !!!
+  #                 (SCOREBOARD_NAMES_DESCRIPTIONS %>% 
+  #                 .[!(is_regular_annual_timeseries), INDIC_NUM] %>% 
+  #                 as.character),
+  #                 # c("09500_ex-50",
+  #                 #   "09510_ex-49",
+  #                 #   "09520_ex-48",
+  #                 #   "09530_ex-47",
+  #                 #   "09540_ex-46",
+  #                 #   "09550_ex-45",
+  #                 #   "09560_ex-44",
+  #                 #   "09570_ex-43",
+  #                 #   "09580_ex-42",
+  #                 #   "10000_ex0",
+  #                 #   "10040_ex4",
+  #                 #   "10050_ex5",
+  #                 #   "10060_ex6" ),
+  #               geo=unique(.$geo),
+  #               time=min(.$time,na.rm=TRUE):max(.$time,na.rm=TRUE)),
+  #   by=c('INDIC_NUM','geo','time'),
+  #   all=TRUE) %>% 
   .[, latest_year_individual :=
       time %>% 
       .[isNotNA(.) & isNotNA(value_)] %>% 
@@ -330,9 +330,9 @@ SCOREBOARD_LAGS_DIFFS <-
   .[prevailing_latest_year %>% isNotNA(.)] %>% 
   setorder(INDIC_NUM,geo,time) %>% 
   .[, previous_year := time[time<prevailing_latest_year] %>% max(na.rm=TRUE)
-    , by=.(INDIC_NUM,geo)] %>% 
+    , by=.(INDIC_NUM)] %>% 
   .[, previous_year_2 := time[time<previous_year] %>% max(na.rm=TRUE)
-    , by=.(INDIC_NUM,geo)] %>% 
+    , by=.(INDIC_NUM)] %>% 
   .[, latest_value := value_[time==prevailing_latest_year] 
     , by=.(INDIC_NUM,geo)] %>% 
   .[, previous_value := value_[time==previous_year]

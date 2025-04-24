@@ -73,9 +73,15 @@ Reduce(init=source_excel_template,
                                old_string='DD MMMMM YYYY',
                                new_string=format(Sys.Date(),"%e %B %Y") %>% trimws) %>% 
            wb_add_data(sheet=x,
-                       x=dta_list[[x]]$value_latest_value %>% round(1),
+                       x=dta_list[[x]]$value_latest_value,
                        start_row=2, start_col=9,
                        na.strings="") %>%
+           wb_add_numfmt(sheet=x, dims=paste0('I2:I',nrow(template_indic_nums)+1), numfmt="0.0") %>% 
+           wb_add_numfmt(sheet=x, 
+                         dims=template_indic_nums %>% 
+                           .[INDIC_NUM=='10200_ex20',INDIC_NUM_order+1] %>% 
+                           paste0('I',.),
+                         numfmt="0.00") %>% 
            wb_add_data(sheet=x, start_col=11, start_row=2,
                        x=rep.int("",nrow(template_indic_nums))) %>% 
            Reduce(init=.,
