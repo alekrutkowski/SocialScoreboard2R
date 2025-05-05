@@ -29,5 +29,6 @@ runScript('Scoreboard_File_2.R')
 runScript('Scoreboard_File_3.R')
 runScript('Scoreboard_File_4.R')
 runScript('Scoreboard_File_5.R')
+runScript('Scoreboard_File_6.R')
 
 message('\n\n\U2705 All Scoreboard scripts finished.')

@@ -239,6 +239,7 @@ SCOREBOARD_NAMES_DESCRIPTIONS <-
                          type = SCOREBOARD_INDICATORS[[x]]$type,
                          url = SCOREBOARD_INDICATORS[[x]]$url,
                          high_is_good = SCOREBOARD_INDICATORS[[x]]$high_is_good,
+                         change_in_percent = SCOREBOARD_INDICATORS[[x]]$change_in_percent,
                          reference_in_scores = 
                            SCOREBOARD_INDICATORS[[x]]$reference_in_scores,
                          is_regular_annual_timeseries =
@@ -263,9 +264,10 @@ SCOREBOARD_GRAND_TABLE <-
     SCOREBOARD_INDICATORS[[x]]$value %>% 
       .[, INDIC_NUM:=x] %>% 
       .[, high_is_good := SCOREBOARD_INDICATORS[[x]]$high_is_good] %>% 
+      .[, change_in_percent := SCOREBOARD_INDICATORS[[x]]$change_in_percent] %>% 
       setcolorder(c('INDIC_NUM','high_is_good'))
   ) %>% rbindlist(fill=TRUE) %>% 
-  .[, grep('^(INDIC_NUM|high_is_good|geo|time|value_|flags_.*|.)$',
+  .[, grep('^(INDIC_NUM|high_is_good|change_in_percent|geo|time|value_|flags_.*|.)$',
            colnames(.),value=TRUE),
     with=FALSE] %>% 
   setcolorder(c('INDIC_NUM','geo','time','value_','flags_',
@@ -275,7 +277,7 @@ SCOREBOARD_GRAND_TABLE <-
 message('Calculating lags...')
 SCOREBOARD_LAGS_DIFFS <-
   SCOREBOARD_GRAND_TABLE %>%
-  .[, .(INDIC_NUM,geo,time,high_is_good,value_,flags_)] %T>% 
+  .[, .(INDIC_NUM,geo,time,high_is_good,change_in_percent,value_,flags_)] %T>% 
   {if (nrow(.)!=nrow(unique(.[,.(INDIC_NUM,geo,time)]))) {
     View(.[duplicated(.[,.(INDIC_NUM,geo,time)])])
     stop('\n`INDIC_NUM`, `geo`, `time` do not uniquely identify the rows in `SCOREBOARD_GRAND_TABLE`!\n',
@@ -339,7 +341,9 @@ SCOREBOARD_LAGS_DIFFS <-
     , by=.(INDIC_NUM,geo)] %>%
   .[, previous_value_2 := value_[time==previous_year_2]
     , by=.(INDIC_NUM,geo)] %>%
-  .[, change := latest_value - previous_value] %>% 
+  .[, change := 
+      ifelse(!change_in_percent, latest_value - previous_value,
+             100*(latest_value/previous_value - 1))] %>% 
   .[, Diff_EU := latest_value - mean(latest_value[geo %in% EU_Members_geo_codes],
                                      na.rm=TRUE)
     , by=.(INDIC_NUM)] %>% 

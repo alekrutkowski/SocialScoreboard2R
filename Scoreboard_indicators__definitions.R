@@ -753,6 +753,7 @@ group = "Fair working conditions",
 type = "H",
 url = "https://ec.europa.eu/eurostat/databrowser/view/tepsr_wc310/default/table?lang=en",
 high_is_good = TRUE,
+change_in_percent = TRUE,
 value = fromEurostatDataset("tepsr_wc310", 
     with_filters(NA))
 )

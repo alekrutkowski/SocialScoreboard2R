@@ -115,6 +115,7 @@ calculate <- memoise::memoise(
                            type,
                            url="",
                            high_is_good,
+                           change_in_percent=FALSE,
                            reference_in_scores='SIMPLE AVERAGE',
                            value) {
       stopifnot(
@@ -125,6 +126,7 @@ calculate <- memoise::memoise(
         type %in% c("H","B","S","SB","C","CB"),
         is.string.scalar(url),
         is.logical.scalar(high_is_good),
+        is.logical.scalar(change_in_percent),
         is.string.scalar(reference_in_scores),
         toupper(reference_in_scores) %in% toupper(names(LIST_OF_REFERENCE_POINT_FUNCTIONS)),
         is.data.frame(value),
@@ -142,6 +144,7 @@ calculate <- memoise::memoise(
            type=type,
            url=url,
            high_is_good=high_is_good,
+           change_in_percent=change_in_percent,
            reference_in_scores=reference_in_scores,
            value = value %>% 
              .[, grep('^(geo|time|value_|flags_.*|.)$',
