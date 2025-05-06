@@ -3,7 +3,7 @@ library(kit)
 
 scoresForTminus <- function(N) {
   message('Calculating lags for N=',N,'...')
-  SCOREBOARD_LAGS_DIFFS <-
+  SCOREBOARD_LAGS_DIFFS. <-
     SCOREBOARD_GRAND_TABLE %>%
     .[, .(INDIC_NUM,geo,time,high_is_good,change_in_percent,value_,flags_)] %T>% 
     {if (nrow(.)!=nrow(unique(.[,.(INDIC_NUM,geo,time)]))) {
@@ -29,7 +29,7 @@ scoresForTminus <- function(N) {
         max()
       , by=.(INDIC_NUM,geo)] %>% 
     .[time <= latest_year_individual] %>% 
-    .[, prevailing_latest_year := latest_year_overall - N # here N is used !
+    .[, prevailing_latest_year := latest_year_overall - N # here N is used !!! !!! !!!
       # round(mean(latest_year_individual))
       # max(latest_year_individual)
       , by=INDIC_NUM] %>% 
@@ -56,8 +56,8 @@ scoresForTminus <- function(N) {
                                    na.rm=TRUE)
       , by=.(INDIC_NUM)]
   message('Calculating scores for N=',N,'...')
-  SCOREBOARD_SCORES <-
-    SCOREBOARD_LAGS_DIFFS %>% 
+  SCOREBOARD_SCORES. <-
+    SCOREBOARD_LAGS_DIFFS. %>% 
     .[time==prevailing_latest_year] %>% 
     # .[, .SD[!(time < round(mean(time))-1)], by=INDIC_NUM] %>% # drop too old years for some countries
     melt(id.vars=c('INDIC_NUM','geo','time','high_is_good','flags_'),
@@ -108,13 +108,46 @@ scoresForTminus <- function(N) {
     setnames('score_latest_value','score1_L') %>% 
     setnames('score_change','score2_D') %>% 
     setorder(INDIC_NUM,geo,time)
-  SCOREBOARD_SCORES
+  SCOREBOARD_SCORES.
+}
+
+fillInIrregularIndics <- function(SCOREBOARD_SCORES_dt) {
+  irregular_indics <-
+    SCOREBOARD_NAMES_DESCRIPTIONS %>% 
+    .[!(is_regular_annual_timeseries), INDIC_NUM]
+  SCOREBOARD_SCORES_dt %>% 
+    .[INDIC_NUM %not in% irregular_indics] %>% 
+    rbind(SCOREBOARD_SCORES[INDIC_NUM %in% irregular_indics])
 }
 
 SCOREBOARD_SCORES_list <-
-  list('2'=scoresForTminus(2),
-       '1'=scoresForTminus(1),
+  list('2'=scoresForTminus(2) %>% fillInIrregularIndics,
+       '1'=scoresForTminus(1) %>% fillInIrregularIndics,
        '0'=SCOREBOARD_SCORES)
+
+SCOREBOARD_SCORES_list_copy <-
+  SCOREBOARD_SCORES_list %>% 
+  lapply(copy)
+
+File5db <-
+  SCOREBOARD_SCORES_list_copy %>% 
+  names %>% 
+  lapply(\(x)
+         SCOREBOARD_SCORES_list_copy[[x]] %>% 
+           .[, `JER Year` :=
+               as.integer(CycleYear) - as.integer(x)]) %>% 
+  rbindlist() %>% 
+  .[geo %in% EU_Members_geo_codes] %>% 
+  merge(SCOREBOARD_NAMES_DESCRIPTIONS[type=='H',.(INDIC_NUM,name)],
+        by='INDIC_NUM') %>% 
+  setnames('name','Indicator') %>% 
+  setnames('time','Data Year') %>% 
+  .[, colour_num := colour_group %>% colourNameToInt] %>% 
+  dcast(`JER Year` + INDIC_NUM + Indicator + `Data Year` ~ geo,
+        value.var='colour_num', fun.aggregate=identity, fill=0L) %>% 
+  .[, INDIC_NUM := NULL] %>% 
+  setcolorder(c('JER Year','Indicator','Data Year',EU_Members_geo_codes)) %T>% 
+  write_xlsx(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 5 database.xlsx'))
 
 
 colourNameToInt <- function(colour_char_vec)
