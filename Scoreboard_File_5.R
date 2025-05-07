@@ -1,6 +1,27 @@
 library(openxlsx2)
 library(kit)
 
+# Determine "cycle year" based on a May–April cycle
+CycleYear <- local({
+  date <- Sys.Date()
+  # Extract numeric year and month from the date
+  yr <- as.integer(format(date, "%Y"))
+  mo <- as.integer(format(date, "%m"))
+  # If month is April (4) or later, add 1 to the year
+  if (mo >= 4) yr + 1  else yr
+}) %>% as.character
+
+colourNameToInt <- function(colour_char_vec)
+  colour_char_vec %>% 
+  nswitch('green', 6L,
+          'white', 5L,
+          'red', 1L,
+          'orange', 2L,
+          'darkgreen', 7L,
+          'yellow', 3L,
+          'blue', 4L,
+          NA_character_, 0L)
+
 scoresForTminus <- function(N) {
   message('Calculating lags for N=',N,'...')
   SCOREBOARD_LAGS_DIFFS. <-
@@ -147,29 +168,8 @@ File5db <-
         value.var='colour_num', fun.aggregate=identity, fill=0L) %>% 
   .[, INDIC_NUM := NULL] %>% 
   setcolorder(c('JER Year','Indicator','Data Year',EU_Members_geo_codes)) %T>% 
-  write_xlsx(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 5 database.xlsx'))
-
-
-colourNameToInt <- function(colour_char_vec)
-  colour_char_vec %>% 
-  nswitch('green', 6L,
-          'white', 5L,
-          'red', 1L,
-          'orange', 2L,
-          'darkgreen', 7L,
-          'yellow', 3L,
-          'blue', 4L,
-          NA_character_, 0L)
-
-# Determine "cycle year" based on a May–April cycle
-CycleYear <- local({
-  date <- Sys.Date()
-  # Extract numeric year and month from the date
-  yr <- as.integer(format(date, "%Y"))
-  mo <- as.integer(format(date, "%m"))
-  # If month is April (4) or later, add 1 to the year
-  if (mo >= 4) yr + 1  else yr
-}) %>% as.character
+  write_xlsx(paste0(OUTPUT_FOLDER,'/Social Scoreboard file 5 database.xlsx'),
+             sheet='Input Data', zoom=85)
 
 source_excel_template <-
   wb_load('Social Scoreboard file4 TEMPLATE.xlsx')
