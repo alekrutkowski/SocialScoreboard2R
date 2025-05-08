@@ -11,6 +11,19 @@ CycleYear <- local({
   if (mo >= 4) yr + 1  else yr
 }) %>% as.character
 
+timeNstepsSmaller <- function(time., n.) {
+  stopifnot(length(n.)==1,
+            is.numeric(n.),
+            n.==round(n.),
+            n.>0)
+  Reduce(init=time.,
+         x=1:n.,
+         f=function(t,x) t[t<max(t)]) %>% 
+    max()
+}
+
+
+
 irregular_indics <-
   SCOREBOARD_NAMES_DESCRIPTIONS %>% 
   .[!(is_regular_annual_timeseries), INDIC_NUM]
@@ -56,16 +69,20 @@ scoresForTminus <- function(N) {
     .[time <= latest_year_individual] %>% 
     .[, prevailing_latest_year := latest_year_overall
       - ifelse(INDIC_NUM %not in% irregular_indics, N, 0L)   # here N is used ❗❗❗ ❗❗❗ ❗❗❗
-      # round(mean(latest_year_individual))
-      # max(latest_year_individual)
-      , by=INDIC_NUM] %>% 
-    `if`(N %in% 1:2, # here N is used ❗❗❗ ❗❗❗ ❗❗❗
-         .[, prevailing_latest_year :=  
-             ifelse(INDIC_NUM=='10610_ex61' &  # GDHI
-                      prevailing_latest_year <= as.integer(CycleYear) - 4L,
-                    prevailing_latest_year + 1,
-                    prevailing_latest_year)],
-         .) %>% 
+      , by=INDIC_NUM] %>%
+    # .[, prevailing_latest_year := time[time<=latest_year_overall] %>% 
+    #     timeNstepsSmaller(t,N)   # here N is used ❗❗❗ ❗❗❗ ❗❗❗
+    #   , by=INDIC_NUM] %>% 
+    # ❗❗❗ Irregular exception ❗❗❗:
+    .[, prevailing_latest_year := prevailing_latest_year %>% 
+        ifelse(N==2 & INDIC_NUM=='10040_ex4', # Share of individuals who have basic or above basic overall digital skills
+               max(time[time<. & INDIC_NUM=='10040_ex4']),
+               .)]  %>% 
+    .[, prevailing_latest_year :=  
+        ifelse(INDIC_NUM=='10610_ex61' &  # GDHI
+                 prevailing_latest_year <= as.integer(CycleYear) - 4L,
+               prevailing_latest_year + 1,
+               prevailing_latest_year)] %>% 
     # .[time <= prevailing_latest_year] %>% 
     .[prevailing_latest_year %>% isNotNA(.)] %>% 
     setorder(INDIC_NUM,geo,time) %>% 
@@ -112,7 +129,7 @@ scoresForTminus <- function(N) {
           value.var=c('value','score','reference','std','t1','t2','t3','t4'),
           fun.aggregate=identity,
           fill=NA) %>% 
-    # ❗❗❗ Irregular exception ❗❗❗: Ignore changes, only use levels
+    # ❗❗❗ Irregular exception ❗❗❗: Ignore changes, only use old levels
     `if`(N==2,
          .[, score_change := score_change %>% 
              ifelse(INDIC_NUM=='10040_ex4',0L,.)] %>% # Share of individuals who have basic or above basic overall digital skills
