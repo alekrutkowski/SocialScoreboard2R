@@ -11,6 +11,10 @@ CycleYear <- local({
   if (mo >= 4) yr + 1  else yr
 }) %>% as.character
 
+irregular_indics <-
+  SCOREBOARD_NAMES_DESCRIPTIONS %>% 
+  .[!(is_regular_annual_timeseries), INDIC_NUM]
+
 colourNameToInt <- function(colour_char_vec)
   colour_char_vec %>% 
   nswitch('green', 6L,
@@ -50,10 +54,18 @@ scoresForTminus <- function(N) {
         max()
       , by=.(INDIC_NUM,geo)] %>% 
     .[time <= latest_year_individual] %>% 
-    .[, prevailing_latest_year := latest_year_overall - N # here N is used !!! !!! !!!
+    .[, prevailing_latest_year := latest_year_overall
+      - ifelse(INDIC_NUM %not in% irregular_indics, N, 0L)   # here N is used ❗❗❗ ❗❗❗ ❗❗❗
       # round(mean(latest_year_individual))
       # max(latest_year_individual)
       , by=INDIC_NUM] %>% 
+    `if`(N %in% 1:2, # here N is used ❗❗❗ ❗❗❗ ❗❗❗
+         .[, prevailing_latest_year :=  
+             ifelse(INDIC_NUM=='10610_ex61' &  # GDHI
+                      prevailing_latest_year <= as.integer(CycleYear) - 4L,
+                    prevailing_latest_year + 1,
+                    prevailing_latest_year)],
+         .) %>% 
     # .[time <= prevailing_latest_year] %>% 
     .[prevailing_latest_year %>% isNotNA(.)] %>% 
     setorder(INDIC_NUM,geo,time) %>% 
@@ -100,6 +112,13 @@ scoresForTminus <- function(N) {
           value.var=c('value','score','reference','std','t1','t2','t3','t4'),
           fun.aggregate=identity,
           fill=NA) %>% 
+    # ❗❗❗ Irregular exception ❗❗❗: Ignore changes, only use levels
+    `if`(N==2,
+         .[, score_change := score_change %>% 
+             ifelse(INDIC_NUM=='10040_ex4',0L,.)] %>% # Share of individuals who have basic or above basic overall digital skills
+           .[, value_change := value_change %>% 
+               ifelse(INDIC_NUM=='10040_ex4',0,.)],
+         .) %>% 
     .[, colour_group :=
         kit::nif(
           # from Python's getException():
@@ -126,23 +145,24 @@ scoresForTminus <- function(N) {
           score_latest_value<=-1 & score_change<=1, 'darkgreen',
           score_latest_value %>% inRange(-0.5,0.5) & score_change %>% inRange(-1,1), 'white'
         )] %>% 
+    # ❗❗❗ Irregular exception ❗❗❗: ignore indicator 
+    `if`(N==2,
+         .[, colour_group := colour_group %>% 
+             ifelse(INDIC_NUM=='10000_ex0',NA_character_,.)], # Adult participation in learning 
+         .) %>% 
     setnames('score_latest_value','score1_L') %>% 
     setnames('score_change','score2_D') %>% 
     setorder(INDIC_NUM,geo,time)
   SCOREBOARD_SCORES.
 }
 
-fillInIrregularIndics <- function(SCOREBOARD_SCORES_dt) {
-  irregular_indics <-
-    SCOREBOARD_NAMES_DESCRIPTIONS %>% 
-    .[!(is_regular_annual_timeseries), INDIC_NUM]
+fillInIrregularIndics <- function(SCOREBOARD_SCORES_dt) 
   SCOREBOARD_SCORES_dt %>% 
-    .[INDIC_NUM %not in% irregular_indics] %>% 
-    rbind(SCOREBOARD_SCORES[INDIC_NUM %in% irregular_indics])
-}
+  .[INDIC_NUM %not in% irregular_indics] %>% 
+  rbind(SCOREBOARD_SCORES[INDIC_NUM %in% irregular_indics])
 
 SCOREBOARD_SCORES_list <-
-  list('2'=scoresForTminus(2) %>% fillInIrregularIndics,
+  list('2'=scoresForTminus(2),
        '1'=scoresForTminus(1) %>% fillInIrregularIndics,
        '0'=SCOREBOARD_SCORES)
 
