@@ -354,6 +354,8 @@ SCOREBOARD_LAGS_DIFFS <-
 # Diff_EU = deviations of latest level from avg(latest level)
 # Diff_MSEU = deviations of timediff from avg(timediff)
 
+populationStandardDeviation <- function(x)
+  sqrt(mean( (x - mean(x))^2 ))
 
 message('Calculating scores...')
 SCOREBOARD_SCORES <-
@@ -385,10 +387,10 @@ SCOREBOARD_SCORES <-
   #   , by=.(INDIC_NUM, variable)] %>% 
   .[, reference := mean(value[geo %in% EU_Members_geo_codes], na.rm=TRUE),
     , by=.(INDIC_NUM, variable)] %>% 
-  .[, std := sd(value[geo %in% EU_Members_geo_codes], na.rm=TRUE),
+  .[, std := populationStandardDeviation(value[geo %in% EU_Members_geo_codes], na.rm=TRUE),
     , by=.(INDIC_NUM, variable)] %>% 
-  .[, score := -1.019049* # rescaling to make it compatible with the Python results
-      ifelse(high_is_good,1,-1)*
+  .[, score := 
+      -ifelse(high_is_good,1,-1)*
       (value - reference)/std] %>% 
   .[, t1 := reference - std] %>% 
   .[, t2 := reference - std/2] %>% 
